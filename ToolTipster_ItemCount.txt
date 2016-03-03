@@ -1,0 +1,10 @@
+## Title: ToolTipster:ItemCount
+## Version: 0.1.0
+## Author: hurry143
+## Description: Displays the amount of each item stored in the bank and across all your characters' bags.
+## APIVersion: 100013
+## DependsOn: ToolTipster
+## SavedVariables: ItemCount_Inventory
+
+ToolTipster_ItemCount.lua
+localization\$(language).lua

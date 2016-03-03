@@ -1,0 +1,1 @@
+ZO_CreateStringId('TTIC_LABEL_BANK', 'Banque');
