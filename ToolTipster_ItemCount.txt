@@ -4,7 +4,23 @@
 ## Description: Displays the amount of each item stored in the bank and across all your characters' bags.
 ## APIVersion: 100013
 ## DependsOn: ToolTipster
-## SavedVariables: ItemCount_Inventory
+## OptionalDependsOn: LibAddonMenu-2.0
+## SavedVariables: ItemCount_SavedVars
 
-ToolTipster_ItemCount.lua
+libs\LibStub\LibStub.lua
+libs\LibAddonMenu-2.0\LibAddonMenu-2.0.lua
+libs\LibAddonMenu-2.0\controls\panel.lua
+libs\LibAddonMenu-2.0\controls\submenu.lua
+libs\LibAddonMenu-2.0\controls\button.lua
+libs\LibAddonMenu-2.0\controls\checkbox.lua
+libs\LibAddonMenu-2.0\controls\colorpicker.lua
+libs\LibAddonMenu-2.0\controls\custom.lua
+libs\LibAddonMenu-2.0\controls\description.lua
+libs\LibAddonMenu-2.0\controls\dropdown.lua
+libs\LibAddonMenu-2.0\controls\editbox.lua
+libs\LibAddonMenu-2.0\controls\header.lua
+libs\LibAddonMenu-2.0\controls\slider.lua
+libs\LibAddonMenu-2.0\controls\texture.lua
+
 localization\$(language).lua
+ToolTipster_ItemCount.lua

@@ -3,6 +3,8 @@
 ------------------------------------------------------------
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
+ToolTipster_ItemCount.version = '0.1.0';
+ToolTipster_ItemCount.author = 'hurry143';
 
 -- Register this module with ToolTipster
 ToolTipster.submodules[ToolTipster_ItemCount.name] = ToolTipster_ItemCount;
@@ -11,15 +13,33 @@ ToolTipster.submodules[ToolTipster_ItemCount.name] = ToolTipster_ItemCount;
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
 local TTIC = ToolTipster_ItemCount;
-local SV_INVENTORY_VER = 1;
+local SV_VER = 1;
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local BANK_INDEX = 'bank';
+local LIB_ADDON_MENU = 'LibAddonMenu-2.0';
+local DEFAULT_SETTINGS = {
+  global = false,
+  showBank = false,
+  showPlayer = false,
+  showCharacters = {}
+};
+local DEFAULT_ACCT_SAVED_VARS = {
+  inventory = {},
+  knownCharacters = {},
+  settings = DEFAULT_SETTINGS,
+};
+local DEFAULT_CHAR_SAVED_VARS = {
+  settings = DEFAULT_SETTINGS,
+};
 
 ------------------------------------------------------------
 -- PRIVATE VARIABLES
 ------------------------------------------------------------
+local savedVars = {};
+local knownChars = nil;
 local inventory = nil;
-local itemLinkCache = {};
+local acctSettings = nil;
+local charSettings = nil;
 
 ------------------------------------------------------------
 -- PRIVATE METHODS FOR MAINTAINING THE INVENTORY
@@ -31,7 +51,7 @@ local itemLinkCache = {};
 --
 -- @param   bagId   the id of the bag
 -- @return  true if bag should be monitored, false otherwise.
-local function ShouldMonitorBag(bagId)
+local function shouldMonitorBag(bagId)
   -- We only care about the backpack and the bank.
   if (bagId > 2) then
     return false;
@@ -45,7 +65,7 @@ end
 --
 -- @param   itemKey   the 'unique' key for the item.
 -- @param   location  bank or the name of a character.
-local function UpdateBagCount(itemKey, location, count) 
+local function updateBagCount(itemKey, location, count) 
   if (count > 0) then
     -- Update the location's count for the item. 
     inventory[itemKey][location] = count;
@@ -60,20 +80,20 @@ end
 -- Updates the inventory info for an item.
 --
 -- @param   itemLink  the link for the item.
-local function UpdateInventory(itemLink)
+local function updateInventory(itemLink)
   if (not itemLink) then
     return;
   end
   
   local bagpackCount, bankCount = GetItemLinkStacks(itemLink);
-  local itemKey = ToolTipster.createItemIndex(itemLink);
+  local itemKey = ToolTipster.CreateItemIndex(itemLink);
 
   if (not inventory[itemKey]) then
     inventory[itemKey] = {};
   end
       
-  UpdateBagCount(itemKey, CURRENT_PLAYER, bagpackCount);
-  UpdateBagCount(itemKey, BANK_INDEX, bankCount);
+  updateBagCount(itemKey, CURRENT_PLAYER, bagpackCount);
+  updateBagCount(itemKey, BANK_INDEX, bankCount);
   
   -- Count the number of entries that remain for the item after the updates.
   local count = 0
@@ -102,6 +122,9 @@ local function cacheItemLink(bagId, slotIndex, itemLink, data)
   -- For now, save the itemLink as a field directly in the slot data.
   -- We always have the option of saving it in a local table.
   data.itemLink = itemLink;
+end
+
+local function deleteCharacter(charName)
 end
 
 ------------------------------------------------------------
@@ -141,13 +164,13 @@ end
 ------------------------------------------------------------
 -- Re-scans all items in both the bank and the current player's
 -- backpack and updates the inventory data accordingly.
-local function ReloadInventory()
+local function reloadInventory()
   local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK, BAG_BANK);
   
   for slot, data in pairs(items) do
     local itemLink = GetItemLink(data.bagId, data.slotIndex);
     cacheItemLink(data.bagId, data.slotIndex, itemLink, data);
-    UpdateInventory(itemLink);
+    updateInventory(itemLink);
   end
 
 end
@@ -158,14 +181,14 @@ end
 -- @param   bagId     the id of the bag.
 -- @param   slotIndex the slot index within the bag. 
 -- @param   data      the data of the added slot.
-local function OnSlotAdded(bagId, slotIndex, data)
-  if (not ShouldMonitorBag(bagId)) then
+local function onSlotAdded(bagId, slotIndex, data)
+  if (not shouldMonitorBag(bagId)) then
     return;
   end
   
   local itemLink = GetItemLink(bagId, slotIndex);
   cacheItemLink(bagId, slotIndex, itemLink, data);
-  UpdateInventory(itemLink);
+  updateInventory(itemLink);
 end
 
 ------------------------------------------------------------
@@ -174,13 +197,132 @@ end
 -- @param   bagId     the id of the bag.
 -- @param   slotIndex the slot index within the bag. 
 -- @param   data      the data of the removed slot.
-local function OnSlotRemoved(bagId, slotIndex, data)
-  if (not ShouldMonitorBag(bagId)) then
+local function onSlotRemoved(bagId, slotIndex, data)
+  if (not shouldMonitorBag(bagId)) then
     return;
   end
   
   -- Use the itemLink that was cached when the item was counted earlier.
-  UpdateInventory(getCachedItemLink(bagId, slotIndex, data));
+  updateInventory(getCachedItemLink(bagId, slotIndex, data));
+end
+
+------------------------------------------------------------
+-- METHODS FOR DEALING WITH ADDON SETTINGS
+------------------------------------------------------------
+
+local function activeSettings()
+  return ((acctSettings.global and acctSettings) or
+          charSettings)
+end
+
+local function initLibAddonMenu()
+  local panelData = {
+    type = 'panel',
+    name = GetString(TTIC_NAME),
+    displayName = GetString(TTIC_NAME),
+    author = TTIC.author,
+    version = TTIC.version,
+    registerForDefaults = true,
+  };
+  local optionsData = {};
+  
+  table.insert(optionsData, {
+    type = 'checkbox',
+    name = 'Global settings',
+    tooltip = 'Global settings',
+    getFunc = function() return acctSettings.global end,
+    setFunc = function(value)
+      local sourceSettings = acctSettings;
+      local targetSettings = charSettings;
+      if (not value) then
+        sourceSettings = charSettings;
+        targetSettings = acctSettings;
+      end
+      for key, value in pairs(sourceSettings) do
+        if (type(value) == 'table') then
+          for t_key, t_value in pairs(value) do
+            targetSettings[key][t_key] = t_value;
+          end
+        else
+          targetSettings[key] = value;
+        end
+      end
+      acctSettings.global = value;
+    end,
+  });
+  
+  table.insert(optionsData, {
+    type = 'header',
+    name = "Select what to show in an item's tooltip",
+  });
+  
+  table.insert(optionsData, {
+    type = 'checkbox',
+    name = 'Show bank',
+    tooltip = 'Show bank count',
+    getFunc = function() return activeSettings().showBank end,
+    setFunc = function(value) activeSettings().showBank = value end,
+  });
+  
+  table.insert(optionsData, {
+    type = 'checkbox',
+    name = 'Show player',
+    tooltip = 'Show bank player',
+    getFunc = function() return activeSettings().showPlayer end,
+    setFunc = function(value) activeSettings().showPlayer = value end,
+  });
+  
+  local characters = {};
+  for charName, _ in pairs(knownChars) do
+    table.insert(characters, charName);
+  end
+  table.sort(characters);
+  
+  for i=1, #characters do
+    table.insert(optionsData, {
+      type = 'checkbox',
+      name = 'Show items from '..characters[i],
+      tooltip = 'Show count from this character',
+      getFunc = function() return activeSettings().showCharacters[characters[i]] end,
+      setFunc = function(value) activeSettings().showCharacters[characters[i]] = value end,
+    });
+  end
+  
+  local charToDelete = nil;
+  local charList = {};
+  table.insert(charList, 1, ' ');
+  for charName, _ in pairs(knownChars) do
+    table.insert(charList, charName);
+  end
+  table.sort(charList);
+  
+  table.insert(optionsData, {
+    type = 'submenu',
+    name = 'Delete a character',
+    controls = {
+      [1] = {
+        type = 'dropdown',
+        name = 'Delete a character',
+        tooltip = 'Delete a character',
+        choices = charList,
+        getFunc = function() return charToDelete end,
+        setFunc = function(value) charToDelete = value end,
+      },
+      [2] = {
+        type = 'button',
+        name = 'Delete character',
+        tooltip = 'Click to delete this character',
+        func = function() deleteCharacter(charToDelete) end,
+      }
+    };
+  });
+  
+  local LAM = LibStub(LIB_ADDON_MENU);
+  if LAM then
+    LAM:RegisterAddonPanel('TTIC_Options', panelData);
+
+    LAM:RegisterOptionControls('TTIC_Options', optionsData);
+  end
 end
 
 ------------------------------------------------------------
@@ -189,30 +331,57 @@ end
 
 ------------------------------------------------------------
 -- Registers our callback methods with the appropriate events.
-local function RegisterCallback()
-  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_INVENTORY_FULL_UPDATE, ReloadInventory);
-  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_CRAFT_COMPLETED, ReloadInventory);
-  SHARED_INVENTORY:RegisterCallback('SlotAdded', OnSlotAdded);
-  SHARED_INVENTORY:RegisterCallback('SlotRemoved', OnSlotRemoved);
+local function registerCallback()
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_INVENTORY_FULL_UPDATE, reloadInventory);
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_CRAFT_COMPLETED, reloadInventory);
+  SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
+  SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
 end
 
 ------------------------------------------------------------
 -- This method is called when a player has been activated.
 -- 
 -- @param   eventId   the event code.
-local function OnPlayerActivated(eventId)
-  ReloadInventory();
-  
+local function onPlayerActivated(eventId)
+  reloadInventory();
+   
   -- Delay registering callbacks until data has been initialized.
-  RegisterCallback();
+  registerCallback();
 end
 
 ------------------------------------------------------------
 -- Initializes data that's shared across an entire account.
-local function InitAccountData()
-  local default = {};
+local function initAccountData()
   
-  inventory = ZO_SavedVars:NewAccountWide('ItemCount_Inventory', SV_INVENTORY_VER, nil, default);
+  savedVars = ZO_SavedVars:NewAccountWide('ItemCount_SavedVars', SV_VER, nil, DEFAULT_ACCT_SAVED_VARS);
+  inventory = savedVars.inventory;
+  acctSettings = savedVars.settings;
+  knownChars = savedVars.knownCharacters;
+  
+  if (knownChars[CURRENT_PLAYER] == nil) then
+      knownChars[CURRENT_PLAYER] = CURRENT_PLAYER;
+  end
+  
+  if (acctSettings.showCharacters[CURRENT_PLAYER] == nil) then
+    acctSettings.showCharacters[CURRENT_PLAYER] = true;
+  end
+end
+
+------------------------------------------------------------
+-- Initializes data that's specific to a character.
+local function initCharData()
+  local charSavedVars = ZO_SavedVars:New('ItemCount_SavedVars', SV_VER, nil, DEFAULT_CHAR_SAVED_VARS);
+  charSettings = charSavedVars.settings;
+  
+  for name, value in pairs(acctSettings.showCharacters) do
+    if (charSettings.showCharacters[name] == nil) then
+      if (acctSettings.global) then
+        charSettings.showCharacters[name] = value;
+      else
+        charSettings.showCharacters[name] = true;
+      end
+    end
+  end
 end
 
 ------------------------------------------------------------
@@ -220,15 +389,17 @@ end
 -- 
 -- @param   eventId   the event code.
 -- @param   addonName the name of the loaded addon.
-local function OnAddOnLoaded(eventId, addonName)
+local function onAddOnLoaded(eventId, addonName)
   -- Do nothing if it's some other addon that was loaded.
   if (addonName ~= TTIC.name) then
     return;
   end
 
-  InitAccountData();
-
-  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated);
+  initAccountData();
+  initCharData();
+  initLibAddonMenu();
+  
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
   EVENT_MANAGER:UnregisterForUpdate(EVENT_ADD_ON_LOADED);
 end
 
@@ -249,7 +420,7 @@ function ToolTipster_ItemCount.ShowToolTip(control, itemLink)
   local toolTip = {};
   local bank = nil;
   local backpack = nil;
-  local itemKey = ToolTipster.createItemIndex(itemLink);
+  local itemKey = ToolTipster.CreateItemIndex(itemLink);
   
   if (not itemKey or not inventory[itemKey]) then
     return;
@@ -263,7 +434,7 @@ function ToolTipster_ItemCount.ShowToolTip(control, itemLink)
         bank = toolTipText;
       elseif (location == CURRENT_PLAYER) then
         backpack = toolTipText;
-      else
+      elseif (activeSettings().showCharacters[location]) then
         table.insert(toolTip, toolTipText);
       end
     
@@ -273,12 +444,12 @@ function ToolTipster_ItemCount.ShowToolTip(control, itemLink)
   -- Sort the entries by character name.
   table.sort(toolTip);
   
-  if backpack then
+  if (activeSettings().showPlayer and backpack) then
     -- Always show the entry for the current toon before all others.
     table.insert(toolTip, 1, backpack);
   end
   
-  if bank then
+  if (activeSettings().showBank and bank) then
     -- Always show the entry for the bank first.
     table.insert(toolTip, 1, bank);
   end
@@ -293,5 +464,5 @@ end
 -- REGISTER WITH THE GAME'S EVENTS
 ------------------------------------------------------------
 
-EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded);
+EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_ADD_ON_LOADED, onAddOnLoaded);
 
