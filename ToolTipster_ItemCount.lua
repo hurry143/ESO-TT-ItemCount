@@ -3,7 +3,7 @@
 ------------------------------------------------------------
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
-ToolTipster_ItemCount.version = '0.1.0';
+ToolTipster_ItemCount.version = '0.5.0';
 ToolTipster_ItemCount.author = 'hurry143';
 
 -- Register this module with ToolTipster
@@ -13,22 +13,22 @@ ToolTipster.submodules[ToolTipster_ItemCount.name] = ToolTipster_ItemCount;
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
 local TTIC = ToolTipster_ItemCount;
-local SV_VER = 1;
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local BANK_INDEX = 'bank';
 local LIB_ADDON_MENU = 'LibAddonMenu-2.0';
+local SV_VER = 1;
 local DEFAULT_SETTINGS = {
   global = false,
   showBank = false,
   showPlayer = false,
   showCharacters = {}
 };
-local DEFAULT_ACCT_SAVED_VARS = {
+local DEFAULT_ACCT_SV = {
   inventory = {},
   knownCharacters = {},
   settings = DEFAULT_SETTINGS,
 };
-local DEFAULT_CHAR_SAVED_VARS = {
+local DEFAULT_CHAR_SV = {
   settings = DEFAULT_SETTINGS,
 };
 
@@ -210,6 +210,8 @@ end
 -- METHODS FOR DEALING WITH ADDON SETTINGS
 ------------------------------------------------------------
 
+------------------------------------------------------------
+-- If 
 local function activeSettings()
   return ((acctSettings.global and acctSettings) or
           charSettings)
@@ -353,7 +355,7 @@ end
 -- Initializes data that's shared across an entire account.
 local function initAccountData()
   
-  savedVars = ZO_SavedVars:NewAccountWide('ItemCount_SavedVars', SV_VER, nil, DEFAULT_ACCT_SAVED_VARS);
+  savedVars = ZO_SavedVars:NewAccountWide('ItemCount_SavedVars', SV_VER, nil, DEFAULT_ACCT_SV);
   inventory = savedVars.inventory;
   acctSettings = savedVars.settings;
   knownChars = savedVars.knownCharacters;
@@ -370,7 +372,7 @@ end
 ------------------------------------------------------------
 -- Initializes data that's specific to a character.
 local function initCharData()
-  local charSavedVars = ZO_SavedVars:New('ItemCount_SavedVars', SV_VER, nil, DEFAULT_CHAR_SAVED_VARS);
+  local charSavedVars = ZO_SavedVars:New('ItemCount_SavedVars', SV_VER, nil, DEFAULT_CHAR_SV);
   charSettings = charSavedVars.settings;
   
   for name, value in pairs(acctSettings.showCharacters) do
@@ -412,7 +414,7 @@ end
 --
 -- @param   control   the item tooltip control to modify.
 -- @param   itemLink  the link for the item.
-function ToolTipster_ItemCount.ShowToolTip(control, itemLink)
+function ToolTipster_ItemCount:ShowToolTip(control, itemLink)
   if (not itemLink) then
     return;
   end
