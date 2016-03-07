@@ -13,7 +13,7 @@ ZO_CreateStringId('TTIC_OPTION_BANK', 'Show inventory in the bank.');
 ZO_CreateStringId('TTIC_OPTION_BANK_TIP', 'Turn ON to have the tooltip include the amount of an item stored in the bank.');
 ZO_CreateStringId('TTIC_OPTION_PLAYER', 'Show inventory in the bag.');
 ZO_CreateStringId('TTIC_OPTION_PLAYER_TIP', 'Turn ON to have the tooltip include the amount of an item stored in the current character\'s bag.');
-ZO_CreateStringId('TTIC_MENU_CHARACTERS', 'Character Inventory Reporting');
+ZO_CreateStringId('TTIC_MENU_CHARACTERS', 'Character Inventories');
 ZO_CreateStringId('TTIC_MENU_CHARACTERS_DESC', 'Select the characters for whom the tooltip should include item counts for.');
 ZO_CreateStringId('TTIC_OPTION_CHARACTER', 'Show inventory from ');
 ZO_CreateStringId('TTIC_OPTION_CHARACTER_TIP', 'Turn ON to have the tooltip include the amount of an item stored in this character\'s bag.');

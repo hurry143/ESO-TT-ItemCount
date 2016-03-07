@@ -38,6 +38,7 @@ local DEFAULT_CHAR_SV = {
 ------------------------------------------------------------
 local LAM = nil;
 local savedVars = {};
+local optionsData = nil;
 local knownChars = nil;
 local inventory = nil;
 local acctSettings = nil;
@@ -156,6 +157,27 @@ local function deleteCharacter(charName)
   -- Remove character from settings.
   acctSettings.showCharacters[charName] = nil;
   charSettings.showCharacters[charName] = nil;
+  
+  local checkbox = GetControl(TTIC.name..'_'..charName);
+  checkbox.data.disabled = true;
+  checkbox.data.default = false;
+  checkbox:UpdateDisabled();
+  
+  local charList = {};
+  for charName, _ in pairs(knownChars) do
+    -- Don't create an entry for the current character.
+    if (charName ~= CURRENT_PLAYER) then
+      table.insert(charList, charName);
+    end
+  end
+  table.sort(charList);
+  
+  -- Insert a blank entry as the default selection.
+  table.insert(charList, 1, ' ');
+  
+  local dropdown = GetControl(TTIC.name..'_Char_DropDown');
+  dropdown:UpdateChoices(charList);
+  dropdown:UpdateValue(true, nil);
 end
 
 ------------------------------------------------------------
@@ -261,7 +283,7 @@ local function buildOptionsMenu()
   end
 
   -- Create the data for populating the settings panel.
-  local optionsData = {};
+  optionsData = {};
   
   table.insert(optionsData, {
     type = 'description',
@@ -281,10 +303,9 @@ local function buildOptionsMenu()
     default = DEFAULT_SETTINGS.global,
     getFunc = function() return acctSettings.global end,
     setFunc = function(value)
-      local sourceSettings = acctSettings;
+      local sourceSettings = activeSettings();
       local targetSettings = charSettings;
-      if (not value) then
-        sourceSettings = charSettings;
+      if (value) then
         targetSettings = acctSettings;
       end
       for key, value in pairs(sourceSettings) do
@@ -347,6 +368,8 @@ local function buildOptionsMenu()
       default = true,
       getFunc = function() return activeSettings().showCharacters[characters[i]] end,
       setFunc = function(value) activeSettings().showCharacters[characters[i]] = value end,
+      disabled = false,
+      reference = TTIC.name..'_'..characters[i],
     });
   end
   
@@ -380,8 +403,10 @@ local function buildOptionsMenu()
         name = GetString(TTIC_OPTION_DELETE),
         tooltip = GetString(TTIC_OPTION_DELETE_TIP),
         choices = charList,
+        default = ' ',
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
+        reference = TTIC.name..'_Char_DropDown', 
       },
       [3] = {
         type = 'button',
@@ -412,6 +437,7 @@ local function initOptionsMenu()
     author = TTIC.author,
     version = TTIC.version,
     registerForDefaults = true,
+    registerForRefresh = true,
   };
   
   LAM:RegisterAddonPanel(TTIC_OPTIONS_NAME, panelData);
