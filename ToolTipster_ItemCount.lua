@@ -3,6 +3,7 @@
 ------------------------------------------------------------
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
+ToolTipster_ItemCount.shortName = 'TTIC';
 ToolTipster_ItemCount.version = '0.5.0';
 ToolTipster_ItemCount.author = 'hurry143';
 
@@ -158,7 +159,8 @@ local function deleteCharacter(charName)
   acctSettings.showCharacters[charName] = nil;
   charSettings.showCharacters[charName] = nil;
   
-  local checkbox = GetControl(TTIC.name..'_'..charName);
+  -- Disable the character's checkbox in the settings menu.
+  local checkbox = GetControl(TTIC.shortName..'_'..charName);
   checkbox.data.disabled = true;
   checkbox.data.default = false;
   checkbox:UpdateDisabled();
@@ -175,7 +177,8 @@ local function deleteCharacter(charName)
   -- Insert a blank entry as the default selection.
   table.insert(charList, 1, ' ');
   
-  local dropdown = GetControl(TTIC.name..'_Char_DropDown');
+  -- Remove the character's entry from the dropdown in the settings menu.
+  local dropdown = GetControl(TTIC.shortName..'_Char_DropDown');
   dropdown:UpdateChoices(charList);
   dropdown:UpdateValue(true, nil);
 end
@@ -369,7 +372,7 @@ local function buildOptionsMenu()
       getFunc = function() return activeSettings().showCharacters[characters[i]] end,
       setFunc = function(value) activeSettings().showCharacters[characters[i]] = value end,
       disabled = false,
-      reference = TTIC.name..'_'..characters[i],
+      reference = TTIC.shortName..'_'..characters[i],
     });
   end
   
@@ -406,7 +409,7 @@ local function buildOptionsMenu()
         default = ' ',
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
-        reference = TTIC.name..'_Char_DropDown', 
+        reference = TTIC.shortName..'_Char_DropDown', 
       },
       [3] = {
         type = 'button',
