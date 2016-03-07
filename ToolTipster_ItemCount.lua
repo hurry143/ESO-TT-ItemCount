@@ -36,6 +36,7 @@ local DEFAULT_CHAR_SV = {
 ------------------------------------------------------------
 -- PRIVATE VARIABLES
 ------------------------------------------------------------
+local LAM = nil;
 local savedVars = {};
 local knownChars = nil;
 local inventory = nil;
@@ -125,7 +126,36 @@ local function cacheItemLink(bagId, slotIndex, itemLink, data)
   data.itemLink = itemLink;
 end
 
+------------------------------------------------------------
+-- Deletes the inventory data for a character.
+-- 
+-- @param charName  the name of the character to delete.
 local function deleteCharacter(charName)
+  if (charName == ' ') then
+    return;
+  end
+  
+  for itemKey, _ in pairs(inventory) do
+    for location, amount in pairs(inventory[itemKey]) do
+      if (location == charName) then
+        inventory[itemKey][location] = nil;
+        local count = 0
+        for _ in pairs(inventory[itemKey]) do
+          count = count + 1;
+        end
+        if (count == 0) then
+          inventory[itemKey] = nil;
+        end
+      end
+    end
+  end
+  
+  -- Remove character from list of known characters.
+  knownChars[charName] = nil;
+  
+  -- Remove character from settings.
+  acctSettings.showCharacters[charName] = nil;
+  charSettings.showCharacters[charName] = nil;
 end
 
 ------------------------------------------------------------
@@ -223,18 +253,13 @@ local function activeSettings()
 end
 
 ------------------------------------------------------------
--- Uses LibAddonMenu to initialize the settings menu for this addon.
-local function initLibAddonMenu()
-  -- Create the basic data for creating the settings panel.
-  local panelData = {
-    type = 'panel',
-    name = GetString(TTIC_NAME),
-    displayName = GetString(TTIC_DISPLAY_NAME),
-    author = TTIC.author,
-    version = TTIC.version,
-    registerForDefaults = true,
-  };
-  
+-- Builds out the controls for the settings menu.
+local function buildOptionsMenu()
+
+  if not LAM then
+    return;
+  end
+
   -- Create the data for populating the settings panel.
   local optionsData = {};
   
@@ -331,7 +356,10 @@ local function initLibAddonMenu()
   -- Create a list of all known characters, sorted by name.
   local charList = {};
   for charName, _ in pairs(knownChars) do
-    table.insert(charList, charName);
+    -- Don't create an entry for the current character.
+    if (charName ~= CURRENT_PLAYER) then
+      table.insert(charList, charName);
+    end
   end
   table.sort(charList);
   
@@ -364,11 +392,29 @@ local function initLibAddonMenu()
     };
   });
   
-  local LAM = LibStub(LIB_ADDON_MENU);
-  if LAM then
-    LAM:RegisterAddonPanel(TTIC_OPTIONS_NAME, panelData);
-    LAM:RegisterOptionControls(TTIC_OPTIONS_NAME, optionsData);
+  LAM:RegisterOptionControls(TTIC_OPTIONS_NAME, optionsData);
+end
+
+------------------------------------------------------------
+-- Uses LibAddonMenu to initialize the settings menu for this addon.
+local function initOptionsMenu()
+
+  LAM = LibStub(LIB_ADDON_MENU);
+  if not LAM then
+    return;
   end
+  
+  -- Create the basic data for creating the settings panel.
+  local panelData = {
+    type = 'panel',
+    name = GetString(TTIC_NAME),
+    displayName = GetString(TTIC_DISPLAY_NAME),
+    author = TTIC.author,
+    version = TTIC.version,
+    registerForDefaults = true,
+  };
+  
+  LAM:RegisterAddonPanel(TTIC_OPTIONS_NAME, panelData);
 end
 
 ------------------------------------------------------------
@@ -439,6 +485,15 @@ local function initCharData()
       end
     end
   end
+  
+  -- Sync up with account settings.
+  for name, value in pairs(charSettings.showCharacters) do
+    -- Delete any characters that may have been deleted from the account
+    -- settings since the last time the current character logged off.
+    if (acctSettings.showCharacters[name] == nil) then
+      charSettings.showCharacters[name] = nil;
+    end
+  end
 end
 
 ------------------------------------------------------------
@@ -454,7 +509,8 @@ local function onAddOnLoaded(eventId, addonName)
 
   initAccountData();
   initCharData();
-  initLibAddonMenu();
+  initOptionsMenu();
+  buildOptionsMenu();
   
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
   EVENT_MANAGER:UnregisterForUpdate(EVENT_ADD_ON_LOADED);
