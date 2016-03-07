@@ -13,12 +13,13 @@ ToolTipster.submodules[ToolTipster_ItemCount.name] = ToolTipster_ItemCount;
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
 local TTIC = ToolTipster_ItemCount;
+local TTIC_OPTIONS_NAME = 'TTIC_Options';
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local BANK_INDEX = 'bank';
 local LIB_ADDON_MENU = 'LibAddonMenu-2.0';
 local SV_VER = 1;
 local DEFAULT_SETTINGS = {
-  global = false,
+  global = true,
   showBank = false,
   showPlayer = false,
   showCharacters = {}
@@ -135,7 +136,7 @@ end
 -- @param   bagId     the id of the bag.
 -- @param   slotIndex the slot index within the bag.
 -- @param   data      the slot data.
--- @return  itemLink  the cached itemLink.
+-- @return  the cached itemLink.
 local function getCachedItemLink(bagId, slotIndex, data)
   -- Return the itemLink that we saved as a field in the slot data.
   return data.itemLink;
@@ -211,27 +212,48 @@ end
 ------------------------------------------------------------
 
 ------------------------------------------------------------
--- If 
+-- If 'global' is turned on, then returns the current settings for
+-- the entire account, otherwise returns the current settings for
+-- the active character. The returned settings saved as part of this
+-- addon's saved variables.
+-- @return  the table containing the current settings.
 local function activeSettings()
   return ((acctSettings.global and acctSettings) or
           charSettings)
 end
 
+------------------------------------------------------------
+-- Uses LibAddonMenu to initialize the settings menu for this addon.
 local function initLibAddonMenu()
+  -- Create the basic data for creating the settings panel.
   local panelData = {
     type = 'panel',
     name = GetString(TTIC_NAME),
-    displayName = GetString(TTIC_NAME),
+    displayName = GetString(TTIC_DISPLAY_NAME),
     author = TTIC.author,
     version = TTIC.version,
     registerForDefaults = true,
   };
+  
+  -- Create the data for populating the settings panel.
   local optionsData = {};
   
   table.insert(optionsData, {
+    type = 'description',
+    text = GetString(TTIC_DESC),
+  });
+  
+  table.insert(optionsData, {
+    type = 'header',
+    name = GetString(TTIC_MENU_GENERAL),
+  });
+  
+  -- Create an option to save the settings account-wide.
+  table.insert(optionsData, {
     type = 'checkbox',
-    name = 'Global settings',
-    tooltip = 'Global settings',
+    name = GetString(TTIC_OPTION_GLOBAL),
+    tooltip = GetString(TTIC_OPTION_GLOBAL_TIP),
+    default = DEFAULT_SETTINGS.global,
     getFunc = function() return acctSettings.global end,
     setFunc = function(value)
       local sourceSettings = acctSettings;
@@ -252,68 +274,91 @@ local function initLibAddonMenu()
       acctSettings.global = value;
     end,
   });
-  
-  table.insert(optionsData, {
-    type = 'header',
-    name = "Select what to show in an item's tooltip",
-  });
-  
+
+  -- Create an option to show the amount of the item stored in the bank.
   table.insert(optionsData, {
     type = 'checkbox',
-    name = 'Show bank',
-    tooltip = 'Show bank count',
+    name = GetString(TTIC_OPTION_BANK),
+    tooltip = GetString(TTIC_OPTION_BANK_TIP),
+    default = DEFAULT_SETTINGS.showBank,
     getFunc = function() return activeSettings().showBank end,
     setFunc = function(value) activeSettings().showBank = value end,
   });
   
+  -- Create an option to show the amount of the item stored in the current bag.
   table.insert(optionsData, {
     type = 'checkbox',
-    name = 'Show player',
-    tooltip = 'Show bank player',
+    name = GetString(TTIC_OPTION_PLAYER),
+    tooltip = GetString(TTIC_OPTION_PLAYER_TIP),
+    default = DEFAULT_SETTINGS.showPlayer,
     getFunc = function() return activeSettings().showPlayer end,
     setFunc = function(value) activeSettings().showPlayer = value end,
   });
   
+  -- Create a section for selecting which characters to report amounts for.
+  table.insert(optionsData, {
+    type = 'header',
+    name = GetString(TTIC_MENU_CHARACTERS),
+  });
+  
+  table.insert(optionsData, {
+    type = 'description',
+    text = GetString(TTIC_MENU_CHARACTERS_DESC),
+  });
+  
+  -- Create a list of all known characters, sorted by name.
   local characters = {};
   for charName, _ in pairs(knownChars) do
     table.insert(characters, charName);
   end
   table.sort(characters);
   
+  -- Create a checkbox for each character.
   for i=1, #characters do
     table.insert(optionsData, {
       type = 'checkbox',
-      name = 'Show items from '..characters[i],
-      tooltip = 'Show count from this character',
+      name = GetString(TTIC_OPTION_CHARACTER)..'|cF7F49E'..characters[i]..'|r',
+      tooltip = GetString(TTIC_OPTION_CHARACTER_TIP),
+      default = true,
       getFunc = function() return activeSettings().showCharacters[characters[i]] end,
       setFunc = function(value) activeSettings().showCharacters[characters[i]] = value end,
     });
   end
   
+  -- Create an option for removing a character's data.
   local charToDelete = nil;
+  
+  -- Create a list of all known characters, sorted by name.
   local charList = {};
-  table.insert(charList, 1, ' ');
   for charName, _ in pairs(knownChars) do
     table.insert(charList, charName);
   end
   table.sort(charList);
   
+  -- Insert a blank entry as the default selection.
+  table.insert(charList, 1, ' ');
+  
+  -- Create a dropdown list and a button for deleting a character's data.
   table.insert(optionsData, {
     type = 'submenu',
-    name = 'Delete a character',
+    name = GetString(TTIC_MENU_DELETE),
     controls = {
       [1] = {
+        type = 'description',
+        text = GetString(TTIC_MENU_DELETE_DESC);
+      },
+      [2] = {
         type = 'dropdown',
-        name = 'Delete a character',
-        tooltip = 'Delete a character',
+        name = GetString(TTIC_OPTION_DELETE),
+        tooltip = GetString(TTIC_OPTION_DELETE_TIP),
         choices = charList,
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
       },
-      [2] = {
+      [3] = {
         type = 'button',
-        name = 'Delete character',
-        tooltip = 'Click to delete this character',
+        name = GetString(TTIC_BUTTON_DELETE),
+        tooltip = GetString(TTIC_BUTTON_DELETE_TIP),
         func = function() deleteCharacter(charToDelete) end,
       }
     };
@@ -321,9 +366,8 @@ local function initLibAddonMenu()
   
   local LAM = LibStub(LIB_ADDON_MENU);
   if LAM then
-    LAM:RegisterAddonPanel('TTIC_Options', panelData);
-
-    LAM:RegisterOptionControls('TTIC_Options', optionsData);
+    LAM:RegisterAddonPanel(TTIC_OPTIONS_NAME, panelData);
+    LAM:RegisterOptionControls(TTIC_OPTIONS_NAME, optionsData);
   end
 end
 
@@ -356,14 +400,19 @@ end
 local function initAccountData()
   
   savedVars = ZO_SavedVars:NewAccountWide('ItemCount_SavedVars', SV_VER, nil, DEFAULT_ACCT_SV);
+  
+  -- Create references to the various components of the saved variable.
   inventory = savedVars.inventory;
   acctSettings = savedVars.settings;
   knownChars = savedVars.knownCharacters;
   
+  -- Make sure that we add the current character to the list of known characters.
   if (knownChars[CURRENT_PLAYER] == nil) then
       knownChars[CURRENT_PLAYER] = CURRENT_PLAYER;
   end
   
+  -- If the current character is new, then make sure that the account settings
+  -- show the character's inventory by default.
   if (acctSettings.showCharacters[CURRENT_PLAYER] == nil) then
     acctSettings.showCharacters[CURRENT_PLAYER] = true;
   end
@@ -373,13 +422,19 @@ end
 -- Initializes data that's specific to a character.
 local function initCharData()
   local charSavedVars = ZO_SavedVars:New('ItemCount_SavedVars', SV_VER, nil, DEFAULT_CHAR_SV);
+  
+  -- Create a reference to the character's settings.
   charSettings = charSavedVars.settings;
   
   for name, value in pairs(acctSettings.showCharacters) do
+    -- If the current character is new, then make sure that the settings
+    -- include it as an option.
     if (charSettings.showCharacters[name] == nil) then
       if (acctSettings.global) then
+        -- If 'global' is true, then just use the global setting.
         charSettings.showCharacters[name] = value;
       else
+        -- Otherwise, show the character's inventory by default.
         charSettings.showCharacters[name] = true;
       end
     end
