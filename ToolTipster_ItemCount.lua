@@ -19,10 +19,15 @@ local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local BANK_INDEX = 'bank';
 local LIB_ADDON_MENU = 'LibAddonMenu-2.0';
 local SV_VER = 1;
+local DISPLAY_NAME_OPTIONS = {};
+DISPLAY_NAME_OPTIONS['full'] = GetString(TTIC_OPTION_DISPLAY_NAME_FULL);
+DISPLAY_NAME_OPTIONS['first'] = GetString(TTIC_OPTION_DISPLAY_NAME_FIRST);
+DISPLAY_NAME_OPTIONS['last'] = GetString(TTIC_OPTION_DISPLAY_NAME_LAST);
 local DEFAULT_SETTINGS = {
   global = true,
   showBank = false,
   showPlayer = false,
+  displayName = 'full',
   showCharacters = {}
 };
 local DEFAULT_ACCT_SV = {
@@ -37,8 +42,8 @@ local DEFAULT_CHAR_SV = {
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
 ------------------------------------------------------------
-local BANK_ICON = zo_iconFormat('ESOUI/art/icons/mapkey/mapkey_bank.dds', 20, 20);
-local BAG_ICON = zo_iconFormat('ESOUI/art/tooltips/icon_bag.dds', 14, 18);
+local BANK_ICON = zo_iconFormat('ESOUI/art/icons/mapkey/mapkey_bank.dds', 20, 22);
+local BAG_ICON = zo_iconFormat('ESOUI/art/tooltips/icon_bag.dds', 14, 20);
 local TOOLTIP_FONT = 'ZoFontGame';
 local COUNT_COLOR = 'FFFFFF';
 
@@ -206,24 +211,6 @@ local function getCachedItemLink(bagId, slotIndex, data)
 end
 
 ------------------------------------------------------------
--- PRIVATE METHODS FOR CREATING TOOLTIPS
-------------------------------------------------------------
-
-------------------------------------------------------------
--- Creates the tooltip text that shows the item count in a given bag.
---
--- @param location  bank or the name of a character.
--- @param count     the number to display.
-local function createToolTipText(location, count)
-  if (location == BANK_INDEX) then
-    location = BANK_ICON;
-  elseif (location == CURRENT_PLAYER) then
-    location = BAG_ICON;
-  end
-  return zo_strformat('|c<<1>><<2>>|r <<3>>', COUNT_COLOR, count, location);
-end
-
-------------------------------------------------------------
 -- CALLBACKS FOR BAG UPDATE EVENTS
 ------------------------------------------------------------
 
@@ -386,6 +373,36 @@ local function buildOptionsMenu()
     });
   end
   
+  -- Create a section for appearance options.
+  table.insert(optionsData, {
+    type = 'header',
+    name = GetString(TTIC_MENU_APPEARANCE),
+  });
+  
+  table.insert(optionsData, {
+    type = 'description',
+    text = GetString(TTIC_MENU_APPEARANCE_DESC),
+  });
+  
+  table.insert(optionsData, {
+    type = 'dropdown',
+    name = GetString(TTIC_OPTION_DISPLAY_NAME),
+    tooltip = GetString(TTIC_OPTION_DISPLAY_NAME_TIP),
+    choices = { GetString(TTIC_OPTION_DISPLAY_NAME_FULL), GetString(TTIC_OPTION_DISPLAY_NAME_FIRST), GetString(TTIC_OPTION_DISPLAY_NAME_LAST) },
+    default = DEFAULT_SETTINGS.displayName,
+    getFunc = function() return DISPLAY_NAME_OPTIONS[activeSettings().displayName] end,
+    setFunc = function(value)
+        local selected = 'full';
+        for option, text in pairs(DISPLAY_NAME_OPTIONS) do
+          if (text == value) then
+            selected = option;
+            break;
+          end
+        end
+        activeSettings().displayName = selected;
+      end,
+  });
+  
   -- Create an option for removing a character's data.
   local charToDelete = nil;
   
@@ -400,7 +417,7 @@ local function buildOptionsMenu()
   table.sort(charList);
   
   -- Insert a blank entry as the default selection.
-  table.insert(charList, 1, ' ');
+--  table.insert(charList, 1, ' ');
   
   -- Create a dropdown list and a button for deleting a character's data.
   table.insert(optionsData, {
@@ -416,7 +433,6 @@ local function buildOptionsMenu()
         name = GetString(TTIC_OPTION_DELETE),
         tooltip = GetString(TTIC_OPTION_DELETE_TIP),
         choices = charList,
-        default = ' ',
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
         reference = TTIC.shortName..'_Char_DropDown', 
@@ -548,6 +564,32 @@ local function onAddOnLoaded(eventId, addonName)
   
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
   EVENT_MANAGER:UnregisterForUpdate(EVENT_ADD_ON_LOADED);
+end
+
+------------------------------------------------------------
+-- PRIVATE METHODS FOR CREATING TOOLTIPS
+------------------------------------------------------------
+
+------------------------------------------------------------
+-- Creates the tooltip text that shows the item count in a given bag.
+--
+-- @param location  bank or the name of a character.
+-- @param count     the number to display.
+local function createToolTipText(location, count)
+  if (location == BANK_INDEX) then
+    location = BANK_ICON;
+  elseif (location == CURRENT_PLAYER) then
+    location = BAG_ICON;
+  elseif (activeSettings().displayName ~= 'full') then
+    -- Display only the character's first name.
+    for i in string.gmatch(location, "%S+") do
+      location = i;
+      if (activeSettings().displayName == 'first') then
+        break;
+      end
+    end
+  end
+  return zo_strformat('|c<<1>><<2>>|r <<3>>', COUNT_COLOR, count, location);
 end
 
 ------------------------------------------------------------
