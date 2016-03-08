@@ -4,7 +4,7 @@
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
 ToolTipster_ItemCount.shortName = 'TTIC';
-ToolTipster_ItemCount.version = '0.5.0';
+ToolTipster_ItemCount.version = '1.0.0';
 ToolTipster_ItemCount.author = 'hurry143';
 
 -- Register this module with ToolTipster
@@ -33,6 +33,14 @@ local DEFAULT_ACCT_SV = {
 local DEFAULT_CHAR_SV = {
   settings = DEFAULT_SETTINGS,
 };
+
+------------------------------------------------------------
+-- STYLES AND FORMATTING
+------------------------------------------------------------
+local BANK_ICON = zo_iconFormat('ESOUI/art/icons/mapkey/mapkey_bank.dds', 20, 20);
+local BAG_ICON = zo_iconFormat('ESOUI/art/tooltips/icon_bag.dds', 14, 18);
+local TOOLTIP_FONT = 'ZoFontGame';
+local COUNT_COLOR = 'FFFFFF';
 
 ------------------------------------------------------------
 -- PRIVATE VARIABLES
@@ -208,9 +216,11 @@ end
 -- @param count     the number to display.
 local function createToolTipText(location, count)
   if (location == BANK_INDEX) then
-    location = GetString(TTIC_LABEL_BANK);
+    location = BANK_ICON;
+  elseif (location == CURRENT_PLAYER) then
+    location = BAG_ICON;
   end
-  return location..': '..count;
+  return zo_strformat('|c<<1>><<2>>|r <<3>>', COUNT_COLOR, count, location);
 end
 
 ------------------------------------------------------------
@@ -484,12 +494,7 @@ local function initAccountData()
   -- Make sure that we add the current character to the list of known characters.
   if (knownChars[CURRENT_PLAYER] == nil) then
       knownChars[CURRENT_PLAYER] = CURRENT_PLAYER;
-  end
-  
-  -- If the current character is new, then make sure that the account settings
-  -- show the character's inventory by default.
-  if (acctSettings.showCharacters[CURRENT_PLAYER] == nil) then
-    acctSettings.showCharacters[CURRENT_PLAYER] = true;
+      acctSettings.showCharacters[CURRENT_PLAYER] = true;
   end
 end
 
@@ -597,8 +602,10 @@ function ToolTipster_ItemCount:ShowToolTip(control, itemLink)
   end
   
   if (#toolTip > 0) then
+    --ZO_Tooltip_AddDivider(control);
     -- Concatenate all the entries into one line and add it to the tooltip.
-    control:AddLine(table.concat(toolTip, ', '));
+    control:AddVerticalPadding(10);
+    control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
   end
 end
 
