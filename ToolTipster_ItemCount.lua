@@ -7,9 +7,6 @@ ToolTipster_ItemCount.shortName = 'TTIC';
 ToolTipster_ItemCount.version = '1.0.0';
 ToolTipster_ItemCount.author = 'hurry143';
 
--- Register this module with ToolTipster
-ToolTipster.submodules[ToolTipster_ItemCount.name] = ToolTipster_ItemCount;
-
 ------------------------------------------------------------
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
@@ -17,6 +14,7 @@ local TTIC = ToolTipster_ItemCount;
 local TTIC_OPTIONS_NAME = 'TTIC_Options';
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local BANK_INDEX = 'bank';
+local LIB_TOOLTIPSTER = 'ToolTipster';
 local LIB_ADDON_MENU = 'LibAddonMenu-2.0';
 local SV_VER = 1;
 local DISPLAY_NAME_OPTIONS = {};
@@ -42,14 +40,16 @@ local DEFAULT_CHAR_SV = {
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
 ------------------------------------------------------------
-local BANK_ICON = zo_iconFormat('ESOUI/art/icons/mapkey/mapkey_bank.dds', 20, 22);
-local BAG_ICON = zo_iconFormat('ESOUI/art/tooltips/icon_bag.dds', 14, 20);
+local BANK_ICON = '|t20:22:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t';
+local BAG_ICON = '|t20:24:ESOUI/art/crafting/crafting_provisioner_inventorycolumn_icon.dds:inheritColor|t'
+local PADDING_TOP = 10;
 local TOOLTIP_FONT = 'ZoFontGame';
 local COUNT_COLOR = 'FFFFFF';
 
 ------------------------------------------------------------
 -- PRIVATE VARIABLES
 ------------------------------------------------------------
+local TT = nil;
 local LAM = nil;
 local savedVars = {};
 local optionsData = nil;
@@ -103,7 +103,7 @@ local function updateInventory(itemLink)
   end
   
   local bagpackCount, bankCount = GetItemLinkStacks(itemLink);
-  local itemKey = ToolTipster.CreateItemIndex(itemLink);
+  local itemKey = TT:CreateItemIndex(itemLink);
 
   if (not inventory[itemKey]) then
     inventory[itemKey] = {};
@@ -146,10 +146,6 @@ end
 -- 
 -- @param charName  the name of the character to delete.
 local function deleteCharacter(charName)
-  if (charName == ' ') then
-    return;
-  end
-  
   for itemKey, _ in pairs(inventory) do
     for location, amount in pairs(inventory[itemKey]) do
       if (location == charName) then
@@ -166,7 +162,7 @@ local function deleteCharacter(charName)
   end
   
   -- Remove character from list of known characters.
-  knownChars[charName] = nil;
+  TT:RemoveCharacterFromList(knownChars, charName);
   
   -- Remove character from settings.
   acctSettings.showCharacters[charName] = nil;
@@ -177,22 +173,10 @@ local function deleteCharacter(charName)
   checkbox.data.disabled = true;
   checkbox.data.default = false;
   checkbox:UpdateDisabled();
-  
-  local charList = {};
-  for charName, _ in pairs(knownChars) do
-    -- Don't create an entry for the current character.
-    if (charName ~= CURRENT_PLAYER) then
-      table.insert(charList, charName);
-    end
-  end
-  table.sort(charList);
-  
-  -- Insert a blank entry as the default selection.
-  table.insert(charList, 1, ' ');
-  
+    
   -- Remove the character's entry from the dropdown in the settings menu.
   local dropdown = GetControl(TTIC.shortName..'_Char_DropDown');
-  dropdown:UpdateChoices(charList);
+  dropdown:UpdateChoices(knownChars);
   dropdown:UpdateValue(true, nil);
 end
 
@@ -208,6 +192,23 @@ end
 local function getCachedItemLink(bagId, slotIndex, data)
   -- Return the itemLink that we saved as a field in the slot data.
   return data.itemLink;
+end
+
+local function getInventory(itemLink)
+  local itemKey = TT:CreateItemIndex(itemLink);
+  local itemInventory = {};
+  
+  if (not itemKey or not inventory[itemKey]) then
+    return itemInventory;
+  end
+
+  for location, count in pairs(inventory[itemKey]) do
+    if (count and count > 0) then
+      itemInventory[location] = count;
+    end
+  end
+
+  return itemInventory; 
 end
 
 ------------------------------------------------------------
@@ -303,20 +304,7 @@ local function buildOptionsMenu()
     default = DEFAULT_SETTINGS.global,
     getFunc = function() return acctSettings.global end,
     setFunc = function(value)
-      local sourceSettings = activeSettings();
-      local targetSettings = charSettings;
-      if (value) then
-        targetSettings = acctSettings;
-      end
-      for key, value in pairs(sourceSettings) do
-        if (type(value) == 'table') then
-          for t_key, t_value in pairs(value) do
-            targetSettings[key][t_key] = t_value;
-          end
-        else
-          targetSettings[key] = value;
-        end
-      end
+      TT:CopyAddonSettings(value, acctSettings, charSettings);
       acctSettings.global = value;
     end,
   });
@@ -351,25 +339,18 @@ local function buildOptionsMenu()
     type = 'description',
     text = GetString(TTIC_MENU_CHARACTERS_DESC),
   });
-  
-  -- Create a list of all known characters, sorted by name.
-  local characters = {};
-  for charName, _ in pairs(knownChars) do
-    table.insert(characters, charName);
-  end
-  table.sort(characters);
-  
+
   -- Create a checkbox for each character.
-  for i=1, #characters do
+  for i=1, #knownChars do
     table.insert(optionsData, {
       type = 'checkbox',
-      name = GetString(TTIC_OPTION_CHARACTER)..'|cF7F49E'..characters[i]..'|r',
+      name = GetString(TTIC_OPTION_CHARACTER)..'|cF7F49E'..knownChars[i]..'|r',
       tooltip = GetString(TTIC_OPTION_CHARACTER_TIP),
       default = true,
-      getFunc = function() return activeSettings().showCharacters[characters[i]] end,
-      setFunc = function(value) activeSettings().showCharacters[characters[i]] = value end,
+      getFunc = function() return activeSettings().showCharacters[knownChars[i]] end,
+      setFunc = function(value) activeSettings().showCharacters[knownChars[i]] = value end,
       disabled = false,
-      reference = TTIC.shortName..'_'..characters[i],
+      reference = TTIC.shortName..'_'..knownChars[i],
     });
   end
   
@@ -406,19 +387,6 @@ local function buildOptionsMenu()
   -- Create an option for removing a character's data.
   local charToDelete = nil;
   
-  -- Create a list of all known characters, sorted by name.
-  local charList = {};
-  for charName, _ in pairs(knownChars) do
-    -- Don't create an entry for the current character.
-    if (charName ~= CURRENT_PLAYER) then
-      table.insert(charList, charName);
-    end
-  end
-  table.sort(charList);
-  
-  -- Insert a blank entry as the default selection.
---  table.insert(charList, 1, ' ');
-  
   -- Create a dropdown list and a button for deleting a character's data.
   table.insert(optionsData, {
     type = 'submenu',
@@ -432,7 +400,7 @@ local function buildOptionsMenu()
         type = 'dropdown',
         name = GetString(TTIC_OPTION_DELETE),
         tooltip = GetString(TTIC_OPTION_DELETE_TIP),
-        choices = charList,
+        choices = knownChars,
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
         reference = TTIC.shortName..'_Char_DropDown', 
@@ -473,6 +441,68 @@ local function initOptionsMenu()
 end
 
 ------------------------------------------------------------
+-- PRIVATE METHODS FOR CREATING TOOLTIPS
+------------------------------------------------------------
+
+------------------------------------------------------------
+-- Creates the tooltip text that shows the item count in a given bag.
+--
+-- @param location  bank or the name of a character.
+-- @param count     the number to display.
+local function createToolTipText(location, count)
+  if (location == BANK_INDEX) then
+    location = BANK_ICON;
+  elseif (location == CURRENT_PLAYER) then
+    location = BAG_ICON;
+  elseif (activeSettings().displayName ~= 'full') then
+    -- Display only the character's first name.
+    for i in string.gmatch(location, "%S+") do
+      location = ' '..i;
+      if (activeSettings().displayName == 'first') then
+        break;
+      end
+    end
+  else
+    location = ' '..location;
+  end
+  return zo_strformat('|c<<1>><<2>>|r<<3>>', COUNT_COLOR, count, location);
+end
+
+------------------------------------------------------------
+-- Add info to an item's tooltip.
+--
+-- @param   control   the item tooltip control to modify.
+-- @param   itemLink  the link for the item.
+local function showToolTip(control, itemLink)
+  if (not itemLink) then
+    return;
+  end
+
+  local toolTip = {};
+  local itemInventory = getInventory(itemLink);
+
+  for _, charName in ipairs(knownChars) do
+    if (charName ~= CURRENT_PLAYER and itemInventory[charName] and activeSettings().showCharacters[charName]) then
+      table.insert(toolTip, createToolTipText(charName, itemInventory[charName]));
+    end
+  end
+  
+  if (activeSettings().showPlayer and itemInventory[CURRENT_PLAYER]) then
+    table.insert(toolTip, 1, createToolTipText(CURRENT_PLAYER, itemInventory[CURRENT_PLAYER]));
+  end
+  
+  if (activeSettings().showBank and itemInventory[BANK_INDEX]) then
+    table.insert(toolTip, 1, createToolTipText(BANK_INDEX, itemInventory[BANK_INDEX]));
+  end
+  
+  if (#toolTip > 0) then
+    -- Concatenate all the entries into one line and add it to the tooltip.
+    control:AddVerticalPadding(PADDING_TOP);
+    control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+  end
+end
+
+------------------------------------------------------------
 -- METHODS FOR INITIALIZING THE ADD-ON
 ------------------------------------------------------------
 
@@ -483,6 +513,7 @@ local function registerCallback()
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_CRAFT_COMPLETED, reloadInventory);
   SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
   SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
+  TT:RegisterCallback(TT.events.TT_EVENT_ITEM_TOOLTIP, showToolTip);
 end
 
 ------------------------------------------------------------
@@ -508,8 +539,7 @@ local function initAccountData()
   knownChars = savedVars.knownCharacters;
   
   -- Make sure that we add the current character to the list of known characters.
-  if (knownChars[CURRENT_PLAYER] == nil) then
-      knownChars[CURRENT_PLAYER] = CURRENT_PLAYER;
+  if (TT:AddCharacterToList(knownChars, CURRENT_PLAYER)) then
       acctSettings.showCharacters[CURRENT_PLAYER] = true;
   end
 end
@@ -557,6 +587,7 @@ local function onAddOnLoaded(eventId, addonName)
     return;
   end
 
+  TT = LibStub(LIB_TOOLTIPSTER);
   initAccountData();
   initCharData();
   initOptionsMenu();
@@ -567,93 +598,7 @@ local function onAddOnLoaded(eventId, addonName)
 end
 
 ------------------------------------------------------------
--- PRIVATE METHODS FOR CREATING TOOLTIPS
-------------------------------------------------------------
-
-------------------------------------------------------------
--- Creates the tooltip text that shows the item count in a given bag.
---
--- @param location  bank or the name of a character.
--- @param count     the number to display.
-local function createToolTipText(location, count)
-  if (location == BANK_INDEX) then
-    location = BANK_ICON;
-  elseif (location == CURRENT_PLAYER) then
-    location = BAG_ICON;
-  elseif (activeSettings().displayName ~= 'full') then
-    -- Display only the character's first name.
-    for i in string.gmatch(location, "%S+") do
-      location = i;
-      if (activeSettings().displayName == 'first') then
-        break;
-      end
-    end
-  end
-  return zo_strformat('|c<<1>><<2>>|r <<3>>', COUNT_COLOR, count, location);
-end
-
-------------------------------------------------------------
--- PUBLIC METHODS
-------------------------------------------------------------
-
-------------------------------------------------------------
--- Add info to an item's tooltip.
---
--- @param   control   the item tooltip control to modify.
--- @param   itemLink  the link for the item.
-function ToolTipster_ItemCount:ShowToolTip(control, itemLink)
-  if (not itemLink) then
-    return;
-  end
-
-  local toolTip = {};
-  local bank = nil;
-  local backpack = nil;
-  local itemKey = ToolTipster.CreateItemIndex(itemLink);
-  
-  if (not itemKey or not inventory[itemKey]) then
-    return;
-  end
-
-  for location, count in pairs(inventory[itemKey]) do
-    if (count and count > 0) then
-      local toolTipText = createToolTipText(location, count);
-      
-      if (location == BANK_INDEX) then
-        bank = toolTipText;
-      elseif (location == CURRENT_PLAYER) then
-        backpack = toolTipText;
-      elseif (activeSettings().showCharacters[location]) then
-        table.insert(toolTip, toolTipText);
-      end
-    
-    end
-  end
-  
-  -- Sort the entries by character name.
-  table.sort(toolTip);
-  
-  if (activeSettings().showPlayer and backpack) then
-    -- Always show the entry for the current toon before all others.
-    table.insert(toolTip, 1, backpack);
-  end
-  
-  if (activeSettings().showBank and bank) then
-    -- Always show the entry for the bank first.
-    table.insert(toolTip, 1, bank);
-  end
-  
-  if (#toolTip > 0) then
-    --ZO_Tooltip_AddDivider(control);
-    -- Concatenate all the entries into one line and add it to the tooltip.
-    control:AddVerticalPadding(10);
-    control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
-  end
-end
-
-------------------------------------------------------------
 -- REGISTER WITH THE GAME'S EVENTS
 ------------------------------------------------------------
 
 EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_ADD_ON_LOADED, onAddOnLoaded);
-
