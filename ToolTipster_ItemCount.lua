@@ -4,7 +4,7 @@
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
 ToolTipster_ItemCount.shortName = 'TTIC';
-ToolTipster_ItemCount.version = '1.0.1';
+ToolTipster_ItemCount.version = '1.0.5';
 ToolTipster_ItemCount.author = 'hurry143';
 
 ------------------------------------------------------------
@@ -25,6 +25,8 @@ local DEFAULT_SETTINGS = {
   global = true,
   showBank = false,
   showPlayer = false,
+  showAlts = true,
+  showGuilds = true,
   displayName = 'full',
   showCharacters = {}
 };
@@ -260,7 +262,7 @@ local function reloadInventory()
 
 end
 
-local function addToGuildInventory(itemLink, stackCount)
+local function updateGuildInventory(itemLink, stackCount)
   if (not itemLink) then
     return;
   end
@@ -275,27 +277,11 @@ local function addToGuildInventory(itemLink, stackCount)
     if not guildBanks[guildName][itemKey] then
       guildBanks[guildName][itemKey] = 0;
     end
+    
     guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] + stackCount;
-  end    
-end
-
-local function removeFromGuildInventory(itemLink, stackCount)
-  if (not itemLink) then
-    return;
-  end
-  
-  if not guildBankLoaded then
-    return
-  end
-  
-  local guildName = GetGuildName(currentGuildId);
-  local itemKey = TT:CreateItemIndex(itemLink);
-  if itemKey then   
-    if guildBanks[guildName][itemKey] then
-      guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] - stackCount;
-      if (guildBanks[guildName][itemKey] <= 0) then
-        guildBanks[guildName][itemKey] = nil;
-      end
+    
+    if (guildBanks[guildName][itemKey] <= 0) then
+      guildBanks[guildName][itemKey] = nil;
     end
   end    
 end
@@ -314,7 +300,7 @@ local function onSlotAdded(bagId, slotIndex, data)
   local itemLink = GetItemLink(bagId, slotIndex);
   cacheItemLink(bagId, slotIndex, itemLink, data);
   if (bagId == BAG_GUILDBANK) then
-    addToGuildInventory(itemLink, data.stackCount);
+    updateGuildInventory(itemLink, data.stackCount);
   else
     updateInventory(itemLink);
   end
@@ -334,7 +320,7 @@ local function onSlotRemoved(bagId, slotIndex, data)
   -- Use the itemLink that was cached when the item was counted earlier.
   local itemLink = getCachedItemLink(bagId, slotIndex, data)
   if (bagId == BAG_GUILDBANK) then
-    removeFromGuildInventory(itemLink, data.stackCount);
+    updateGuildInventory(itemLink, -1 * data.stackCount);
   else
     updateInventory(itemLink);
   end
@@ -351,12 +337,12 @@ local function reloadGuildInventory()
   guildBankLoading = true;
 
   local guildName = GetGuildName(currentGuildId);
-  local numScanned, numProcessed = 0, 0;
-  d('reloadGuildInventory called for guild '..currentGuildId..' '..guildName);
+  local numSlots, numItems = 0, 0;
   guildBanks[guildName] = {};
+  guildBanks[guildName]['timestamp'] = GetTimeStamp();
   local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_GUILDBANK);
   for slot, data in pairs(items) do
-    numScanned = numScanned + 1;
+    numSlots = numSlots + 1;
     local itemLink = GetItemLink(data.bagId, data.slotIndex);
     if itemLink then
       cacheItemLink(data.bagId, data.slotIndex, itemLink, data);
@@ -364,18 +350,17 @@ local function reloadGuildInventory()
       if itemKey then
         if not guildBanks[guildName][itemKey] then
           guildBanks[guildName][itemKey] = 0;
+          numItems = numItems + 1;
         end
-        numProcessed = numProcessed + 1;
         guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] + data.stackCount;
       end
     end
   end
-  d('processed '..numProcessed..'/'..numScanned);
+  d(TTIC.name..': Scanned '..numItems..' items in '..numSlots..' slots for guild('..currentGuildId..') '..guildName);
   guildBankLoaded = true;
 end
 
 local function onGuildBankReady()
-  d('onGuildBankReady');
   zo_callLater(function() reloadGuildInventory() end, GUILD_BANK_RELOAD_DELAY);
 end
 
@@ -385,10 +370,8 @@ local function onGuildBankSelected(event, guildId)
   currentGuildId = guildId;
 end
 
-local function onGuildBankItemAdded(event, slotIndex)
-end
-
-local function onGuildBankItemRemoved(event, slotIndex)
+local function onGuildQuit(event, guildId, guildName)
+  guildBanks[guildName] = nil;
 end
 
 ------------------------------------------------------------
@@ -458,6 +441,39 @@ local function buildOptionsMenu()
     default = DEFAULT_SETTINGS.showPlayer,
     getFunc = function() return activeSettings().showPlayer end,
     setFunc = function(value) activeSettings().showPlayer = value end,
+  });
+  
+  -- Create an option to show the amount of the item stored in alts' bag.
+  table.insert(optionsData, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_ALTS),
+    tooltip = GetString(TTIC_OPTION_ALTS_TIP),
+    default = DEFAULT_SETTINGS.showAlts,
+    getFunc = function() return activeSettings().showAlts end,
+    setFunc = function(value)
+      activeSettings().showAlts = value;
+      for _, altName in pairs(knownChars) do
+        -- Toggle the character's checkbox in the settings menu.
+        local checkbox = GetControl(TTIC.shortName..'_'..altName);
+        if checkbox then
+          checkbox.data.disabled = not value;
+          checkbox.data.default = true;
+          checkbox:UpdateDisabled();
+        end
+      end
+    end,
+  });
+  
+  -- Create an option to show the amount of the item stored in alts' bag.
+  table.insert(optionsData, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_GUILDS),
+    tooltip = GetString(TTIC_OPTION_GUILDS_TIP),
+    default = DEFAULT_SETTINGS.showGuilds,
+    getFunc = function() return activeSettings().showGuilds end,
+    setFunc = function(value)
+      activeSettings().showGuilds = value;
+    end,
   });
   
   -- Create a section for selecting which characters to report amounts for.
@@ -580,16 +596,16 @@ end
 --
 -- @param location  bank or the name of a character.
 -- @param count     the number to display.
-local function createToolTipText(location, count)
+local function createToolTipText(location, count, displayName)
   if (location == BANK_INDEX) then
     location = BANK_ICON;
   elseif (location == CURRENT_PLAYER) then
     location = BAG_ICON;
-  elseif (activeSettings().displayName ~= 'full') then
+  elseif (displayName ~= 'full') then
     -- Display only the character's first name.
     for i in string.gmatch(location, "%S+") do
       location = ' '..i;
-      if (activeSettings().displayName == 'first') then
+      if (displayName == 'first') then
         break;
       end
     end
@@ -612,19 +628,22 @@ local function showToolTip(control, itemLink)
   local toolTip = {};
   local itemInventory = getInventory(itemLink);
 
-  for _, charName in ipairs(knownChars) do
-    if (charName ~= CURRENT_PLAYER and itemInventory[charName] and activeSettings().showCharacters[charName]) then
-      table.insert(toolTip, createToolTipText(charName, itemInventory[charName]));
+  if (activeSettings().showAlts) then
+    for _, charName in ipairs(knownChars) do
+      if (charName ~= CURRENT_PLAYER and itemInventory[charName] and activeSettings().showCharacters[charName]) then
+        table.insert(toolTip, createToolTipText(charName, itemInventory[charName], activeSettings().displayName));
+      end
     end
   end
    
   if (activeSettings().showPlayer and itemInventory[CURRENT_PLAYER]) then
-    table.insert(toolTip, 1, createToolTipText(CURRENT_PLAYER, itemInventory[CURRENT_PLAYER]));
+    table.insert(toolTip, 1, createToolTipText(CURRENT_PLAYER, itemInventory[CURRENT_PLAYER], 'full'));
   end
   
   if (activeSettings().showBank and itemInventory[BANK_INDEX]) then
-    table.insert(toolTip, 1, createToolTipText(BANK_INDEX, itemInventory[BANK_INDEX]));
+    table.insert(toolTip, 1, createToolTipText(BANK_INDEX, itemInventory[BANK_INDEX], 'full'));
   end
+  
   
   if (#toolTip > 0) then
     -- Concatenate all the entries into one line and add it to the tooltip.
@@ -632,11 +651,19 @@ local function showToolTip(control, itemLink)
     control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
   end
   
-  local guildInventory = getGuildInventory(itemLink);
-  for guildName, count in pairs(guildInventory) do
-    if count > 0 then
-      control:AddVerticalPadding(-5);
-      control:AddLine(createToolTipText(guildName, count), TOOLTIP_FONT, 51/255, 245/255, 77/255);
+  if (activeSettings().showGuilds) then
+    local guildInventory = getGuildInventory(itemLink);
+    local lineNum = 1;
+    for guildName, count in pairs(guildInventory) do
+      if count > 0 then
+        if lineNum == 1 then
+          control:AddVerticalPadding(PADDING_TOP);
+        else
+          control:AddVerticalPadding(-10);
+        end
+        control:AddLine(createToolTipText(guildName, count, 'full'), TOOLTIP_FONT, 51/255, 245/255, 77/255);
+        lineNum = lineNum + 1;
+      end
     end
   end
 end
@@ -652,8 +679,7 @@ local function registerCallback()
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_CRAFT_COMPLETED, reloadInventory);
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_SELECTED, onGuildBankSelected);
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEMS_READY, onGuildBankReady);
---  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEM_ADDED, onGuildBankItemAdded);
---  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEM_REMOVED, onGuildBankItemRemoved);
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_SELF_LEFT_GUILD, onGuildQuit);
   SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
   SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
   TT:RegisterCallback(TT.events.TT_EVENT_ITEM_TOOLTIP, showToolTip);
@@ -685,6 +711,21 @@ local function initAccountData()
   -- Make sure that we add the current character to the list of known characters.
   if (TT:AddCharacterToList(knownChars, CURRENT_PLAYER)) then
       acctSettings.showCharacters[CURRENT_PLAYER] = true;
+  end
+  
+  -- Check to see if we were kicked out of a guild while logged off.
+  local guilds = {};
+  for i=1, GetNumGuilds() do
+    local guildId = GetGuildId(i);
+    table.insert(guilds, GetGuildName(guildId));
+  end
+  
+  for gName, _ in pairs(guildBanks) do
+    local isMember = false;
+    for _, guild in pairs(guilds) do
+      if (gName == guild) then isMember = true; break; end
+    end
+    if not isMember then guildBanks[gName] = nil; end
   end
 end
 

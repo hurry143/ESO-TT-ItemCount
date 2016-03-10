@@ -9,10 +9,14 @@ ZO_CreateStringId('TTIC_DESC', 'This addon helps you keep track of the amounts o
 ZO_CreateStringId('TTIC_MENU_GENERAL', 'General Options');
 ZO_CreateStringId('TTIC_OPTION_GLOBAL', 'Save settings for account');
 ZO_CreateStringId('TTIC_OPTION_GLOBAL_TIP', 'Turn ON to save these settings for every character in your account. Turn OFF to save these settings for just the current character.');
-ZO_CreateStringId('TTIC_OPTION_BANK', 'Show inventory in the bank');
-ZO_CreateStringId('TTIC_OPTION_BANK_TIP', 'Turn ON to have the tooltip include the amount of an item stored in the bank.');
-ZO_CreateStringId('TTIC_OPTION_PLAYER', 'Show inventory in the bag');
+ZO_CreateStringId('TTIC_OPTION_BANK', 'Show bank inventory');
+ZO_CreateStringId('TTIC_OPTION_BANK_TIP', 'Turn ON to have the tooltip include the amount of an item stored in your bank.');
+ZO_CreateStringId('TTIC_OPTION_PLAYER', 'Show bag inventory');
 ZO_CreateStringId('TTIC_OPTION_PLAYER_TIP', 'Turn ON to have the tooltip include the amount of an item stored in the current character\'s bag.');
+ZO_CreateStringId('TTIC_OPTION_ALTS', 'Show inventories from alts');
+ZO_CreateStringId('TTIC_OPTION_ALTS_TIP', 'Turn ON to have the tooltip include the amounts of an item stored in your alts\' bags.');
+ZO_CreateStringId('TTIC_OPTION_GUILDS', 'Show inventories from guild banks');
+ZO_CreateStringId('TTIC_OPTION_GUILDS_TIP', 'Turn ON to have the tooltip include the amounts of an item stored in your guilds\' banks.');
 ZO_CreateStringId('TTIC_MENU_CHARACTERS', 'Character Inventories');
 ZO_CreateStringId('TTIC_MENU_CHARACTERS_DESC', 'Select the characters for whom the tooltip should include item counts for.');
 ZO_CreateStringId('TTIC_OPTION_CHARACTER', 'Show inventory from ');
