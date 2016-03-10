@@ -4,7 +4,7 @@
 ToolTipster_ItemCount = {};
 ToolTipster_ItemCount.name = 'ToolTipster_ItemCount';
 ToolTipster_ItemCount.shortName = 'TTIC';
-ToolTipster_ItemCount.version = '1.0.0';
+ToolTipster_ItemCount.version = '1.0.1';
 ToolTipster_ItemCount.author = 'hurry143';
 
 ------------------------------------------------------------
@@ -30,12 +30,14 @@ local DEFAULT_SETTINGS = {
 };
 local DEFAULT_ACCT_SV = {
   inventory = {},
+  guildBanks = {},
   knownCharacters = {},
   settings = DEFAULT_SETTINGS,
 };
 local DEFAULT_CHAR_SV = {
   settings = DEFAULT_SETTINGS,
 };
+local GUILD_BANK_RELOAD_DELAY = 1500;
 
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
@@ -57,9 +59,13 @@ local knownChars = nil;
 local inventory = nil;
 local acctSettings = nil;
 local charSettings = nil;
+local currentGuildId = nil;
+local guildBanks = nil;
+local guildBankLoading = false;
+local guildBankLoaded = false;
 
 ------------------------------------------------------------
--- PRIVATE METHODS FOR MAINTAINING THE INVENTORY
+-- PRIVATE METHODS FOR TRACKING ACCOUNT INVENTORY
 ------------------------------------------------------------
 
 ------------------------------------------------------------
@@ -69,8 +75,8 @@ local charSettings = nil;
 -- @param   bagId   the id of the bag
 -- @return  true if bag should be monitored, false otherwise.
 local function shouldMonitorBag(bagId)
-  -- We only care about the backpack and the bank.
-  if (bagId > 2) then
+  -- We only care about the backpack, the bank, and the guildbank.
+  if (bagId > 3) then
     return false;
   end
   
@@ -104,6 +110,10 @@ local function updateInventory(itemLink)
   
   local bagpackCount, bankCount = GetItemLinkStacks(itemLink);
   local itemKey = TT:CreateItemIndex(itemLink);
+  
+  if (not itemKey) then
+    return;
+  end
 
   if (not inventory[itemKey]) then
     inventory[itemKey] = {};
@@ -212,7 +222,28 @@ local function getInventory(itemLink)
 end
 
 ------------------------------------------------------------
--- CALLBACKS FOR BAG UPDATE EVENTS
+-- PRIVATE METHODS FOR TRACKING GUILD INVENTORY
+------------------------------------------------------------
+
+local function getGuildInventory(itemLink)
+  local itemKey = TT:CreateItemIndex(itemLink);
+  local itemInventory = {};
+  
+  if (not itemKey) then
+    return itemInventory;
+  end
+  
+  for guildName, guildInventory in pairs(guildBanks) do 
+    if guildInventory[itemKey] then
+      itemInventory[guildName] = guildInventory[itemKey]; 
+    end
+  end
+
+  return itemInventory;
+end
+
+------------------------------------------------------------
+-- CALLBACKS FOR BAG/BANK UPDATE EVENTS
 ------------------------------------------------------------
 
 ------------------------------------------------------------
@@ -229,6 +260,46 @@ local function reloadInventory()
 
 end
 
+local function addToGuildInventory(itemLink, stackCount)
+  if (not itemLink) then
+    return;
+  end
+  
+  if not guildBankLoaded then
+    return
+  end
+  
+  local guildName = GetGuildName(currentGuildId);
+  local itemKey = TT:CreateItemIndex(itemLink);
+  if itemKey then   
+    if not guildBanks[guildName][itemKey] then
+      guildBanks[guildName][itemKey] = 0;
+    end
+    guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] + stackCount;
+  end    
+end
+
+local function removeFromGuildInventory(itemLink, stackCount)
+  if (not itemLink) then
+    return;
+  end
+  
+  if not guildBankLoaded then
+    return
+  end
+  
+  local guildName = GetGuildName(currentGuildId);
+  local itemKey = TT:CreateItemIndex(itemLink);
+  if itemKey then   
+    if guildBanks[guildName][itemKey] then
+      guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] - stackCount;
+      if (guildBanks[guildName][itemKey] <= 0) then
+        guildBanks[guildName][itemKey] = nil;
+      end
+    end
+  end    
+end
+
 ------------------------------------------------------------
 -- This method is called whenever an item is added to a bag slot.
 --
@@ -242,7 +313,11 @@ local function onSlotAdded(bagId, slotIndex, data)
   
   local itemLink = GetItemLink(bagId, slotIndex);
   cacheItemLink(bagId, slotIndex, itemLink, data);
-  updateInventory(itemLink);
+  if (bagId == BAG_GUILDBANK) then
+    addToGuildInventory(itemLink, data.stackCount);
+  else
+    updateInventory(itemLink);
+  end
 end
 
 ------------------------------------------------------------
@@ -257,7 +332,63 @@ local function onSlotRemoved(bagId, slotIndex, data)
   end
   
   -- Use the itemLink that was cached when the item was counted earlier.
-  updateInventory(getCachedItemLink(bagId, slotIndex, data));
+  local itemLink = getCachedItemLink(bagId, slotIndex, data)
+  if (bagId == BAG_GUILDBANK) then
+    removeFromGuildInventory(itemLink, data.stackCount);
+  else
+    updateInventory(itemLink);
+  end
+end
+
+------------------------------------------------------------
+-- CALLBACKS FOR GUILD BANK UPDATE EVENTS
+------------------------------------------------------------
+
+local function reloadGuildInventory()
+  if guildBankLoading then
+    return 
+  end;
+  guildBankLoading = true;
+
+  local guildName = GetGuildName(currentGuildId);
+  local numScanned, numProcessed = 0, 0;
+  d('reloadGuildInventory called for guild '..currentGuildId..' '..guildName);
+  guildBanks[guildName] = {};
+  local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_GUILDBANK);
+  for slot, data in pairs(items) do
+    numScanned = numScanned + 1;
+    local itemLink = GetItemLink(data.bagId, data.slotIndex);
+    if itemLink then
+      cacheItemLink(data.bagId, data.slotIndex, itemLink, data);
+      local itemKey = TT:CreateItemIndex(itemLink);
+      if itemKey then
+        if not guildBanks[guildName][itemKey] then
+          guildBanks[guildName][itemKey] = 0;
+        end
+        numProcessed = numProcessed + 1;
+        guildBanks[guildName][itemKey] = guildBanks[guildName][itemKey] + data.stackCount;
+      end
+    end
+  end
+  d('processed '..numProcessed..'/'..numScanned);
+  guildBankLoaded = true;
+end
+
+local function onGuildBankReady()
+  d('onGuildBankReady');
+  zo_callLater(function() reloadGuildInventory() end, GUILD_BANK_RELOAD_DELAY);
+end
+
+local function onGuildBankSelected(event, guildId)
+  guildBankLoading = false;
+  guildBankLoaded = false;
+  currentGuildId = guildId;
+end
+
+local function onGuildBankItemAdded(event, slotIndex)
+end
+
+local function onGuildBankItemRemoved(event, slotIndex)
 end
 
 ------------------------------------------------------------
@@ -486,7 +617,7 @@ local function showToolTip(control, itemLink)
       table.insert(toolTip, createToolTipText(charName, itemInventory[charName]));
     end
   end
-  
+   
   if (activeSettings().showPlayer and itemInventory[CURRENT_PLAYER]) then
     table.insert(toolTip, 1, createToolTipText(CURRENT_PLAYER, itemInventory[CURRENT_PLAYER]));
   end
@@ -500,6 +631,14 @@ local function showToolTip(control, itemLink)
     control:AddVerticalPadding(PADDING_TOP);
     control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
   end
+  
+  local guildInventory = getGuildInventory(itemLink);
+  for guildName, count in pairs(guildInventory) do
+    if count > 0 then
+      control:AddVerticalPadding(-5);
+      control:AddLine(createToolTipText(guildName, count), TOOLTIP_FONT, 51/255, 245/255, 77/255);
+    end
+  end
 end
 
 ------------------------------------------------------------
@@ -511,6 +650,10 @@ end
 local function registerCallback()
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_INVENTORY_FULL_UPDATE, reloadInventory);
   EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_CRAFT_COMPLETED, reloadInventory);
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_SELECTED, onGuildBankSelected);
+  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEMS_READY, onGuildBankReady);
+--  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEM_ADDED, onGuildBankItemAdded);
+--  EVENT_MANAGER:RegisterForEvent(TTIC.name, EVENT_GUILD_BANK_ITEM_REMOVED, onGuildBankItemRemoved);
   SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
   SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
   TT:RegisterCallback(TT.events.TT_EVENT_ITEM_TOOLTIP, showToolTip);
@@ -535,6 +678,7 @@ local function initAccountData()
   
   -- Create references to the various components of the saved variable.
   inventory = savedVars.inventory;
+  guildBanks = savedVars.guildBanks;
   acctSettings = savedVars.settings;
   knownChars = savedVars.knownCharacters;
   
