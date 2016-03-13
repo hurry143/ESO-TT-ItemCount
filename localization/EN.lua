@@ -1,4 +1,5 @@
 ZO_CreateStringId('TTIC_NAME', 'ToolTipster: Item Count');
+ZO_CreateStringId('TTIC_SHORTNAME', 'TT ItemCount');
 ZO_CreateStringId('TTIC_DISPLAY_NAME', 'Tool|cF25757Tipster:|r |cF7F49EItem Count|r');
 ZO_CreateStringId('TTIC_LABEL_BANK', 'Bank');
 
@@ -17,6 +18,8 @@ ZO_CreateStringId('TTIC_OPTION_ALTS', 'Show inventories from alts');
 ZO_CreateStringId('TTIC_OPTION_ALTS_TIP', 'Turn ON to have the tooltip include the amounts of an item stored in your alts\' bags.');
 ZO_CreateStringId('TTIC_OPTION_GUILDS', 'Show inventories from guild banks');
 ZO_CreateStringId('TTIC_OPTION_GUILDS_TIP', 'Turn ON to have the tooltip include the amounts of an item stored in your guilds\' banks.');
+ZO_CreateStringId('TTIC_OPTION_REFINED', 'Show amounts of the refined material');
+ZO_CreateStringId('TTIC_OPTION_REFINED_TIP', 'Turn ON to have the tooltip include amounts of the material that the item can be refined into (for raw materials only).');
 ZO_CreateStringId('TTIC_MENU_CHARACTERS', 'Character Inventories');
 ZO_CreateStringId('TTIC_MENU_CHARACTERS_DESC', 'Select the characters for whom the tooltip should include item counts for.');
 ZO_CreateStringId('TTIC_OPTION_CHARACTER', 'Show inventory from ');
