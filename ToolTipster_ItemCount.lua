@@ -124,11 +124,11 @@ local function addInventoryToolTip(control, itemLink)
     end
   end
   
-  if (TTIC.GetActiveSettings().showPlayer and itemInventory[CURRENT_PLAYER]) then
+  if (TTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..BAG_ICON);
   end
   
-  if (TTIC.GetActiveSettings().showBank and itemInventory[TTIC.BANK_INDEX]) then
+  if (TTIC.GetActiveSettings().showBank and (itemInventory[TTIC.BANK_INDEX] or refinedInventory[TTIC.BANK_INDEX])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[TTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[TTIC.BANK_INDEX])..BANK_ICON);
   end
   
