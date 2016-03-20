@@ -105,7 +105,7 @@ TTIC.ReloadGuildInventory = function()
         end
       end
       -- TODO Localize this logging text.
-      d(TTIC.SHORTNAME..': Scanned '..numItems..' items in '..numSlots..' slots for guild('..currentGuildId..') '..guildName);
+      d(TTIC.SHORTNAME..': Scanned |cFFFFFF'..numItems..'|r items in |cFFFFFF'..numSlots..'|r slots for guild('..currentGuildId..') |c33F54D'..guildName..'|r');
       guildBankLoaded = true;
     end,
     GUILD_BANK_RELOAD_DELAY);
