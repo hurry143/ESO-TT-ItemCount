@@ -4,6 +4,9 @@
 local TTIC = ToolTipster_ItemCount;
 local TT = ToolTipster_ItemCount.LIBTT;
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
+local SECS_PER_WEEK = 604800;
+local SECS_PER_DAY = 86400;
+local SECS_PER_HOUR = 3600;
 
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
@@ -12,8 +15,24 @@ local BANK_ICON = '|t20:22:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t
 local BAG_ICON = '|t20:24:ESOUI/art/crafting/crafting_provisioner_inventorycolumn_icon.dds:inheritColor|t'
 local PADDING_TOP = 10;
 local TOOLTIP_FONT = 'ZoFontGame';
-local COUNT_COLOR = 'FFFFFF';
-local REFINED_COUNT_COLOR = 'F0B618';
+local COUNT_COLOR = {
+  ['current'] = 'FFFFFF';
+  ['old'] = 'B2B2B2';
+  ['older'] = '777777';
+  ['stale'] = '464646';
+}
+local REFINED_COUNT_COLOR = {
+  ['current'] = 'F0B618';
+  ['old'] = 'B48812';
+  ['older'] = '785B0C';
+  ['stale'] = '483707';
+}
+local GUILD_LABEL_COLOR = {
+  ['current'] = ZO_ColorDef:New('FF33F54D');
+  ['old'] = ZO_ColorDef:New('FF26B83A');
+  ['older'] = ZO_ColorDef:New('FF1A7B27');
+  ['stale'] = ZO_ColorDef:New('FF0F4A17');
+}
 
 ------------------------------------------------------------
 -- UTILITY METHODS
@@ -70,18 +89,41 @@ end
 -- METHODS FOR CREATING TOOLTIPS
 ------------------------------------------------------------
 
-local function createCountLabel(count)
+local function selectColor(colorTable, timestamp)
+  local color = colorTable['current'];
+  if not timestamp then
+    return color;
+  end
+  
+  local now = GetTimeStamp();
+  local diff = now - timestamp;
+  if diff < SECS_PER_HOUR * 12 then
+    color = colorTable['current'];
+  elseif diff < SECS_PER_DAY * 3 then
+    color = colorTable['old'];
+  elseif diff < SECS_PER_WEEK then
+    color = colorTable['older'];
+  else
+    color = colorTable['stale'];
+  end
+  
+  return color;
+end
+
+local function createCountLabel(count, timestamp)
   if not count then
     return '';
   end
-  return zo_strformat('|c<<1>><<2>>|r', COUNT_COLOR, count);
+  local color = selectColor(COUNT_COLOR, timestamp);
+  return zo_strformat('|c<<1>><<2>>|r', color, count);
 end
 
-local function createRefinedCountLabel(refinedCount)
+local function createRefinedCountLabel(refinedCount, timestamp)
   if not refinedCount then
     return '';
   end
-  return zo_strformat(' |c<<1>>[<<2>>]|r', REFINED_COUNT_COLOR, refinedCount);
+  local color = selectColor(REFINED_COUNT_COLOR, timestamp);
+  return zo_strformat(' |c<<1>>[<<2>>]|r', color, refinedCount);
 end
 
 local function createLocationLabel(location)
@@ -161,10 +203,13 @@ local function addGuildInventoryToolTip(control, itemLink)
       else
         control:AddVerticalPadding(-10);
       end
-      local countLabel = createCountLabel(count);
-      local refinedCountLabel = createRefinedCountLabel(refinedCount);
+      
+      local timestamp = TTIC.GetGuildInventoryTimeStamp(guildName);
+      local countLabel = createCountLabel(count, timestamp);
+      local refinedCountLabel = createRefinedCountLabel(refinedCount, timestamp);
       local locationLabel = createLocationLabel(guildName);
-      control:AddLine(countLabel..refinedCountLabel..' '..locationLabel, TOOLTIP_FONT, 51/255, 245/255, 77/255);
+      local color = selectColor(GUILD_LABEL_COLOR, timestamp);
+      control:AddLine(countLabel..refinedCountLabel..' '..locationLabel, TOOLTIP_FONT, color:UnpackRGB());
       lineNum = lineNum + 1;
     end
   end
