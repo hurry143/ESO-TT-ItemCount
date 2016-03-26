@@ -31,6 +31,8 @@ ZO_CreateStringId('TTIC_OPTION_DISPLAY_NAME_TIP', 'Show all or only a part of ea
 ZO_CreateStringId('TTIC_OPTION_DISPLAY_NAME_FULL', 'Full name');
 ZO_CreateStringId('TTIC_OPTION_DISPLAY_NAME_FIRST', 'First part of the name');
 ZO_CreateStringId('TTIC_OPTION_DISPLAY_NAME_LAST', 'Last part of the name');
+ZO_CreateStringId('TTIC_OPTION_DATAAGE', 'Guild data age indicator');
+ZO_CreateStringId('TTIC_OPTION_DATAAGE_TIP', 'Turn ON to dim guild inventory data according to age. Stale and out-of-date data will appear darker than more up-to-date data.');
 ZO_CreateStringId('TTIC_MENU_DELETE', 'Delete a Character\'s Inventory Data');
 ZO_CreateStringId('TTIC_MENU_DELETE_DESC', 'Use this option to stop this addon from reporting inventory data for characters that have been deleted from the account. If you accidentally delete the data for an existing character, then that data shall be rebuilt the next time you log in with that character. This option |cFF0000DOES NOT|r delete any characters from your account.');
 ZO_CreateStringId('TTIC_OPTION_DELETE', 'Select character');

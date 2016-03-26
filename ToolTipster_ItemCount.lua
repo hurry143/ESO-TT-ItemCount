@@ -91,7 +91,7 @@ end
 
 local function selectColor(colorTable, timestamp)
   local color = colorTable['current'];
-  if not timestamp then
+  if (not timestamp) or (not TTIC.GetActiveSettings().displayDataAge) then
     return color;
   end
   

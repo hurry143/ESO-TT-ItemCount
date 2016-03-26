@@ -22,6 +22,7 @@ local DEFAULT_SETTINGS = {
   showGuilds = true,
   showRefined = true,
   charNameFormat = 'full',
+  displayDataAge = true,
   enabledAlts = {},
 };
 
@@ -145,6 +146,13 @@ local function createOptionsData()
           checkbox:UpdateDisabled();
         end
       end
+      
+      local dropdown = GetControl(TTIC.ABBR..'_CharDropDown');
+      if dropdown then
+        dropdown.data.disabled = not value;
+        dropdown.data.default = DEFAULT_SETTINGS.charNameFormat;
+        dropdown:UpdateDisabled();
+      end
     end,
   });
   
@@ -157,6 +165,12 @@ local function createOptionsData()
     getFunc = function() return TTIC.GetActiveSettings().showGuilds end,
     setFunc = function(value)
       TTIC.GetActiveSettings().showGuilds = value;
+      local checkbox = GetControl(TTIC.ABBR..'_DisplayDataAge');
+      if checkbox then
+        checkbox.data.disabled = not value;
+        checkbox.data.default = DEFAULT_SETTINGS.displayDataAge;
+        checkbox:UpdateDisabled();
+      end
     end,
   });
   
@@ -225,6 +239,22 @@ local function createOptionsData()
         end
         TTIC.GetActiveSettings().charNameFormat = selected;
       end,
+    disabled = false,
+    reference = TTIC.ABBR..'_CharDropDown',
+  });
+  
+  -- Create an option to show the age of data.
+  table.insert(data, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_DATAAGE),
+    tooltip = GetString(TTIC_OPTION_DATAAGE_TIP),
+    default = DEFAULT_SETTINGS.displayDataAge,
+    getFunc = function() return TTIC.GetActiveSettings().displayDataAge end,
+    setFunc = function(value)
+      TTIC.GetActiveSettings().displayDataAge = value;
+    end,
+    disabled = false,
+    reference = TTIC.ABBR..'_DisplayDataAge',
   });
   
   -- Create an option for removing a character's data.
