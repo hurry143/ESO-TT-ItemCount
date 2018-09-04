@@ -282,6 +282,8 @@ local function createOptionsData()
         type = 'button',
         name = GetString(TTIC_BUTTON_DELETE),
         tooltip = GetString(TTIC_BUTTON_DELETE_TIP),
+        -- Disable if no character has been selected.
+        disabled = function() return charToDelete == nil end,
         func = function() deleteCharacter(charToDelete) end,
       }
     };
