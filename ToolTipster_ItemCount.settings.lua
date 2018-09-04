@@ -55,25 +55,25 @@ local guilds = nil;
 
 ------------------------------------------------------------
 -- Deletes the inventory data for a character.
--- 
+--
 -- @param charName  the name of the character to delete.
 local function deleteCharacter(charName)
 
-  TT:DeleteCharInventory(charName);
-    
+  TTIC:DeleteCharInventory(charName);
+
   -- Remove character from list of known characters.
   TT:RemoveCharacterFromList(knownChars, charName);
-  
+
   -- Remove character from settings.
   acctSettings.enabledAlts[charName] = nil;
   charSettings.enabledAlts[charName] = nil;
-  
+
   -- Disable the character's checkbox in the settings menu.
   local checkbox = GetControl(TTIC.ABBR..'_'..charName);
   checkbox.data.disabled = true;
   checkbox.data.default = false;
   checkbox:UpdateDisabled();
-    
+
   -- Remove the character's entry from the dropdown in the settings menu.
   local dropdown = GetControl(TTIC.ABBR..'_Char_DropDown');
   dropdown:UpdateChoices(knownChars);
@@ -84,17 +84,17 @@ end
 -- Creates the data for populating the settings panel.
 local function createOptionsData()
   local data = {};
-  
+
   table.insert(data, {
     type = 'description',
     text = GetString(TTIC_DESC),
   });
-  
+
   table.insert(data, {
     type = 'header',
     name = GetString(TTIC_MENU_GENERAL),
   });
-  
+
   -- Create an option to save the settings account-wide.
   table.insert(data, {
     type = 'checkbox',
@@ -117,7 +117,7 @@ local function createOptionsData()
     getFunc = function() return TTIC.GetActiveSettings().showBank end,
     setFunc = function(value) TTIC.GetActiveSettings().showBank = value end,
   });
-  
+
   -- Create an option to show the amount of the item stored in the current bag.
   table.insert(data, {
     type = 'checkbox',
@@ -127,7 +127,7 @@ local function createOptionsData()
     getFunc = function() return TTIC.GetActiveSettings().showPlayer end,
     setFunc = function(value) TTIC.GetActiveSettings().showPlayer = value end,
   });
-  
+
   -- Create an option to show the amount of the item stored in alts' bag.
   table.insert(data, {
     type = 'checkbox',
@@ -146,7 +146,7 @@ local function createOptionsData()
           checkbox:UpdateDisabled();
         end
       end
-      
+
       local dropdown = GetControl(TTIC.ABBR..'_CharDropDown');
       if dropdown then
         dropdown.data.disabled = not value;
@@ -155,7 +155,7 @@ local function createOptionsData()
       end
     end,
   });
-  
+
   -- Create an option to show the amount of the item stored in guild banks.
   table.insert(data, {
     type = 'checkbox',
@@ -173,7 +173,7 @@ local function createOptionsData()
       end
     end,
   });
-  
+
   -- Create an option to show the amount of the refined item.
   table.insert(data, {
     type = 'checkbox',
@@ -185,43 +185,43 @@ local function createOptionsData()
       TTIC.GetActiveSettings().showRefined = value;
     end,
   });
-  
+
   -- Create a section for selecting which characters to report amounts for.
   table.insert(data, {
     type = 'header',
     name = GetString(TTIC_MENU_CHARACTERS),
   });
-  
+
   table.insert(data, {
     type = 'description',
     text = GetString(TTIC_MENU_CHARACTERS_DESC),
   });
 
   -- Create a checkbox for each character.
-  for i=1, #knownChars do
+  for _, charName in pairs(knownChars) do
     table.insert(data, {
       type = 'checkbox',
-      name = GetString(TTIC_OPTION_CHARACTER)..'|cF7F49E'..knownChars[i]..'|r',
+      name = GetString(TTIC_OPTION_CHARACTER)..'|cF7F49E'..charName..'|r',
       tooltip = GetString(TTIC_OPTION_CHARACTER_TIP),
       default = true,
-      getFunc = function() return TTIC.GetActiveSettings().enabledAlts[knownChars[i]] end,
-      setFunc = function(value) TTIC.GetActiveSettings().enabledAlts[knownChars[i]] = value end,
+      getFunc = function() return TTIC.GetActiveSettings().enabledAlts[charName] end,
+      setFunc = function(value) TTIC.GetActiveSettings().enabledAlts[charName] = value end,
       disabled = false,
-      reference = TTIC.ABBR..'_'..knownChars[i],
+      reference = TTIC.ABBR..'_'..charName,
     });
   end
-  
+
   -- Create a section for appearance options.
   table.insert(data, {
     type = 'header',
     name = GetString(TTIC_MENU_APPEARANCE),
   });
-  
+
   table.insert(data, {
     type = 'description',
     text = GetString(TTIC_MENU_APPEARANCE_DESC),
   });
-  
+
   table.insert(data, {
     type = 'dropdown',
     name = GetString(TTIC_OPTION_DISPLAY_NAME),
@@ -242,7 +242,7 @@ local function createOptionsData()
     disabled = false,
     reference = TTIC.ABBR..'_CharDropDown',
   });
-  
+
   -- Create an option to show the age of data.
   table.insert(data, {
     type = 'checkbox',
@@ -256,10 +256,10 @@ local function createOptionsData()
     disabled = false,
     reference = TTIC.ABBR..'_DisplayDataAge',
   });
-  
+
   -- Create an option for removing a character's data.
   local charToDelete = nil;
-  
+
   -- Create a dropdown list and a button for deleting a character's data.
   table.insert(data, {
     type = 'submenu',
@@ -276,7 +276,7 @@ local function createOptionsData()
         choices = knownChars,
         getFunc = function() return charToDelete end,
         setFunc = function(value) charToDelete = value end,
-        reference = TTIC.ABBR..'_Char_DropDown', 
+        reference = TTIC.ABBR..'_Char_DropDown',
       },
       [3] = {
         type = 'button',
@@ -286,7 +286,7 @@ local function createOptionsData()
       }
     };
   });
-  
+
   return data;
 end
 
@@ -299,7 +299,7 @@ end
 -- the entire account, otherwise returns the current settings for
 -- the active character. The returned settings saved as part of this
 -- addon's saved variables.
--- 
+--
 -- @return  the table containing the current settings.
 TTIC.GetActiveSettings = function()
   return ((acctSettings.global and acctSettings) or
@@ -309,7 +309,7 @@ end
 ------------------------------------------------------------
 -- Initializes data that's shared across an entire account.
 TTIC.LoadAccountSettings = function()
-  
+
   local savedVars = ZO_SavedVars:NewAccountWide(SAVEDVARS_NAME, SAVEDVARS_VER, nil, DEFAULT_ACCT_SV);
 
   -- Create local references to the various components of the saved variable.
@@ -317,13 +317,13 @@ TTIC.LoadAccountSettings = function()
   knownChars = savedVars.knownCharacters;
   inventory = savedVars.inventory;
   guildInventory = savedVars.guildInventory;
-  
+
   -- Make sure that we add the current character to the list of known characters.
   local currentChar = zo_strformat('<<C:1>>', GetUnitName('player'));
   if (TT:AddCharacterToList(knownChars, currentChar)) then
       acctSettings.enabledAlts[currentChar] = true;
   end
-  
+
   -- Identify the guilds that the player belongs to.
   guilds = {};
   for i=1, GetNumGuilds() do
@@ -336,10 +336,10 @@ end
 -- Initializes data that's specific to a character.
 TTIC.LoadCharSettings = function()
   local savedVars = ZO_SavedVars:New(SAVEDVARS_NAME, SAVEDVARS_VER, nil, DEFAULT_CHAR_SV);
-  
+
   -- Create a local reference to the character's settings.
   charSettings = savedVars.settings;
-  
+
   for name, value in pairs(acctSettings.enabledAlts) do
     -- If the current character is new, then make sure that the settings
     -- include it as an option.
@@ -353,7 +353,7 @@ TTIC.LoadCharSettings = function()
       end
     end
   end
-  
+
   -- Sync up with account settings.
   for name, value in pairs(charSettings.enabledAlts) do
     -- Delete any characters that may have been deleted from the account
@@ -367,7 +367,7 @@ end
 ------------------------------------------------------------
 -- Uses LibAddonMenu to initialize the settings menu for this addon.
 TTIC.InitSettingsMenu = function()
-  
+
   -- Create the basic data for creating the settings panel.
   local panelData = {
     type = 'panel',
@@ -378,14 +378,14 @@ TTIC.InitSettingsMenu = function()
     registerForDefaults = true,
     registerForRefresh = true,
   };
-  
+
   LAM:RegisterAddonPanel(TTIC_OPTIONS_NAME, panelData);
   LAM:RegisterOptionControls(TTIC_OPTIONS_NAME, createOptionsData());
 end
 
 ------------------------------------------------------------
 -- Returns the names of all known characters on the account.
--- 
+--
 -- @return  the saved variable holding the array of known character names.
 TTIC.GetKnownChars = function()
   return knownChars;
@@ -393,7 +393,7 @@ end
 
 ------------------------------------------------------------
 -- Returns the names of the guilds that the player belongs to.
--- 
+--
 -- @return  an array of guild names.
 TTIC.GetGuilds = function()
   return guilds;
@@ -401,7 +401,7 @@ end
 
 ------------------------------------------------------------
 -- Returns the inventory data for character bags and the bank.
--- 
+--
 -- @return  the saved variable holding the inventory table.
 TTIC.GetSavedInventory = function()
   return inventory;
@@ -409,7 +409,7 @@ end
 
 ------------------------------------------------------------
 -- Returns the inventory data for the guilds.
--- 
+--
 -- @return  the saved variable holding the guild inventory table.
 TTIC.GetSavedGuildInventory = function()
   return guildInventory;
