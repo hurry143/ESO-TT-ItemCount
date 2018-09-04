@@ -37,5 +37,5 @@ ZO_CreateStringId('TTIC_MENU_DELETE', 'Delete a Character\'s Inventory Data');
 ZO_CreateStringId('TTIC_MENU_DELETE_DESC', 'Use this option to stop this addon from reporting inventory data for characters that have been deleted from the account. If you accidentally delete the data for an existing character, then that data shall be rebuilt the next time you log in with that character. This option |cFF0000DOES NOT|r delete any characters from your account.');
 ZO_CreateStringId('TTIC_OPTION_DELETE', 'Select character');
 ZO_CreateStringId('TTIC_OPTION_DELETE_TIP', 'Select the character whose inventory data should be deleted.');
-ZO_CreateStringId('TTIC_BUTTON_DELETE', 'Delete Character');
+ZO_CreateStringId('TTIC_BUTTON_DELETE', 'Delete Character Data');
 ZO_CreateStringId('TTIC_BUTTON_DELETE_TIP', 'Click to delete the selected character\'s inventory data.');
