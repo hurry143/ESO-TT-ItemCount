@@ -14,6 +14,8 @@ ZO_CreateStringId('TTIC_OPTION_BANK', 'Show bank inventory');
 ZO_CreateStringId('TTIC_OPTION_BANK_TIP', 'Turn ON to have the tooltip include the amount of an item stored in your bank.');
 ZO_CreateStringId('TTIC_OPTION_PLAYER', 'Show bag inventory');
 ZO_CreateStringId('TTIC_OPTION_PLAYER_TIP', 'Turn ON to have the tooltip include the amount of an item stored in the current character\'s bag.');
+ZO_CreateStringId('TTIC_OPTION_CRAFTBAG', 'Show craft bag inventory');
+ZO_CreateStringId('TTIC_OPTION_CRAFTBAG_TIP', 'Turn ON to have the tooltip include the amount of an item stored in your craft bag.');
 ZO_CreateStringId('TTIC_OPTION_ALTS', 'Show inventories from alts');
 ZO_CreateStringId('TTIC_OPTION_ALTS_TIP', 'Turn ON to have the tooltip include the amounts of an item stored in your alts\' bags.');
 ZO_CreateStringId('TTIC_OPTION_GUILDS', 'Show inventories from guild banks');

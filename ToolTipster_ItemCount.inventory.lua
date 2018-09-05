@@ -20,9 +20,9 @@ local inventory = nil;
 -- @param   itemKey   the 'unique' key for the item.
 -- @param   location  bank or the name of a character.
 -- @param   count     the updated count of the item.
-local function updateBagCount(itemKey, location, count) 
+local function updateBagCount(itemKey, location, count)
   if (count > 0) then
-    -- Update the location's count for the item. 
+    -- Update the location's count for the item.
     inventory[itemKey][location] = count;
   else
     -- If the location no longer has any stacks of the item, then
@@ -46,7 +46,7 @@ end
 
 ------------------------------------------------------------
 -- Removes a character from the inventory data.
--- 
+--
 -- @param   charName  the name of the character to remove.
 TTIC.DeleteCharInventory = function(charName)
   for itemKey, _ in pairs(inventory) do
@@ -69,8 +69,8 @@ end
 -- Re-scans all items in both the bank and the current character's
 -- backpack and updates the inventory data accordingly.
 TTIC.ReloadInventory = function()
-  local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK, BAG_BANK);
-  
+  local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK, BAG_BANK, BAG_VIRTUAL);
+
   for slot, data in pairs(items) do
     local itemLink = GetItemLink(data.bagId, data.slotIndex);
     TTIC.CacheItemLink(data.bagId, data.slotIndex, itemLink, data);
@@ -80,7 +80,7 @@ TTIC.ReloadInventory = function()
 end
 
 ------------------------------------------------------------
--- Updates the inventory info for an item (for the current bag and bank).
+-- Updates the inventory info for an item (for the current bag, bank, and craft bag).
 --
 -- @param   itemLink  the link for the item.
 -- @param   amount    the amount that the item count has increased/decreased by.
@@ -88,11 +88,11 @@ TTIC.UpdateInventory = function(itemLink, amount)
   if (not itemLink) then
     return;
   end
-  
+
   -- For now, ignore the 'amount' and just get the counts directly.
-  local bagpackCount, bankCount = GetItemLinkStacks(itemLink);
+  local bagpackCount, bankCount, craftbagCount = GetItemLinkStacks(itemLink);
   local itemKey = TT:CreateItemIndex(itemLink);
-  
+
   if (not itemKey) then
     return;
   end
@@ -100,10 +100,11 @@ TTIC.UpdateInventory = function(itemLink, amount)
   if (not inventory[itemKey]) then
     inventory[itemKey] = {};
   end
-      
+
   updateBagCount(itemKey, CURRENT_PLAYER, bagpackCount);
   updateBagCount(itemKey, TTIC.BANK_INDEX, bankCount);
-  
+  updateBagCount(itemKey, TTIC.CRAFTBAG_INDEX, craftbagCount);
+
   -- Count the number of entries that remain for the item after the updates.
   local count = 0
   for _ in pairs(inventory[itemKey]) do
@@ -120,14 +121,14 @@ end
 ------------------------------------------------------------
 -- Returns the inventory count for a given item in the bank
 -- and all of the characters' bags.
--- 
+--
 -- @param   itemLink  the link for the item.
--- 
+--
 -- @return  a table of location names and their respective counts.
 TTIC.GetInventory = function(itemLink)
   local itemKey = TT:CreateItemIndex(itemLink);
   local itemInventory = {};
-  
+
   if (not itemKey or not inventory[itemKey]) then
     return itemInventory;
   end
@@ -138,6 +139,5 @@ TTIC.GetInventory = function(itemLink)
     end
   end
 
-  return itemInventory; 
+  return itemInventory;
 end
-

@@ -8,10 +8,33 @@ local SECS_PER_WEEK = 604800;
 local SECS_PER_DAY = 86400;
 local SECS_PER_HOUR = 3600;
 
+-- Determines whether or not a bag should be monitored for slots added/removed.
+local MONITOR_BAGS = {
+  [BAG_WORN] = true; -- 0
+  [BAG_BACKPACK] = true; -- 1
+  [BAG_BANK] = true; -- 2
+  [BAG_GUILDBANK] = true; -- 3
+  [BAG_BUYBACK] = true; -- 4
+  [BAG_VIRTUAL] = true; -- 5
+  [BAG_SUBSCRIBER_BANK] = false; -- 6
+  [BAG_HOUSE_BANK_ONE] = false; -- 7
+  [BAG_HOUSE_BANK_TWO] = false; -- 8
+  [BAG_HOUSE_BANK_THREE] = false; -- 9
+  [BAG_HOUSE_BANK_FOUR] = false; -- 10
+  [BAG_HOUSE_BANK_FIVE] = false; -- 11
+  [BAG_HOUSE_BANK_SIX] = false; -- 12
+  [BAG_HOUSE_BANK_SEVEN] = false; -- 13
+  [BAG_HOUSE_BANK_EIGHT] = false; -- 14
+  [BAG_HOUSE_BANK_NINE] = false; -- 15
+  [BAG_HOUSE_BANK_TEN] = false; -- 16
+  [BAG_DELETE] = false; -- 17
+}
+
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
 ------------------------------------------------------------
 local BANK_ICON = '|t20:22:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t';
+local CRAFTBAG_ICON = '|t20:22:ESOUI/art/tooltips/icon_craft_bag.dds:inheritColor|t';
 local BAG_ICON = '|t20:24:ESOUI/art/crafting/crafting_provisioner_inventorycolumn_icon.dds:inheritColor|t'
 local PADDING_TOP = 10;
 local TOOLTIP_FONT = 'ZoFontGame';
@@ -46,12 +69,7 @@ local GUILD_LABEL_COLOR = {
 --
 -- @return  true if bag should be monitored, false otherwise.
 local function shouldMonitorBag(bagId)
-  -- We only care about the backpack, the bank, and the guildbank.
-  if (bagId > 3) then
-    return false;
-  end
-  
-  return true;
+  return MONITOR_BAGS[bagId];
 end
 
 ------------------------------------------------------------
@@ -94,7 +112,7 @@ local function selectColor(colorTable, timestamp)
   if (not timestamp) or (not TTIC.GetActiveSettings().displayDataAge) then
     return color;
   end
-  
+
   local now = GetTimeStamp();
   local diff = now - timestamp;
   if diff < SECS_PER_HOUR * 12 then
@@ -106,7 +124,7 @@ local function selectColor(colorTable, timestamp)
   else
     color = colorTable['stale'];
   end
-  
+
   return color;
 end
 
@@ -141,7 +159,7 @@ local function generateCharLabelText(charName)
       end
     end
   end
-  
+
   return labelText;
 end
 
@@ -165,15 +183,19 @@ local function addInventoryToolTip(control, itemLink)
       end
     end
   end
-  
+
   if (TTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..BAG_ICON);
   end
-  
+
+  if (TTIC.GetActiveSettings().showCraftBag and (itemInventory[TTIC.CRAFTBAG_INDEX] or refinedInventory[TTIC.CRAFTBAG_INDEX])) then
+    table.insert(toolTip, 1, createCountLabel(itemInventory[TTIC.CRAFTBAG_INDEX])..createRefinedCountLabel(refinedInventory[TTIC.CRAFTBAG_INDEX])..CRAFTBAG_ICON);
+  end
+
   if (TTIC.GetActiveSettings().showBank and (itemInventory[TTIC.BANK_INDEX] or refinedInventory[TTIC.BANK_INDEX])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[TTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[TTIC.BANK_INDEX])..BANK_ICON);
   end
-  
+
   if (#toolTip > 0) then
     -- Concatenate all the entries into one line and add it to the tooltip.
     control:AddVerticalPadding(PADDING_TOP);
@@ -203,7 +225,7 @@ local function addGuildInventoryToolTip(control, itemLink)
       else
         control:AddVerticalPadding(-10);
       end
-      
+
       local timestamp = TTIC.GetGuildInventoryTimeStamp(guildName);
       local countLabel = createCountLabel(count, timestamp);
       local refinedCountLabel = createRefinedCountLabel(refinedCount, timestamp);
@@ -244,13 +266,13 @@ end
 -- This method is called whenever an item is added to a bag slot.
 --
 -- @param   bagId     the id of the bag.
--- @param   slotIndex the slot index within the bag. 
+-- @param   slotIndex the slot index within the bag.
 -- @param   data      the data of the added slot.
 local function onSlotAdded(bagId, slotIndex, data)
   if (not shouldMonitorBag(bagId)) then
     return;
   end
-  
+
   local itemLink = GetItemLink(bagId, slotIndex);
   TTIC.CacheItemLink(bagId, slotIndex, itemLink, data);
   if (bagId == BAG_GUILDBANK) then
@@ -264,13 +286,13 @@ end
 -- This method is called whenever an item is removed from a bag slot.
 --
 -- @param   bagId     the id of the bag.
--- @param   slotIndex the slot index within the bag. 
+-- @param   slotIndex the slot index within the bag.
 -- @param   data      the data of the removed slot.
 local function onSlotRemoved(bagId, slotIndex, data)
   if (not shouldMonitorBag(bagId)) then
     return;
   end
-  
+
   -- Use the itemLink that was cached when the item was counted earlier.
   local itemLink = TTIC.GetCachedItemLink(bagId, slotIndex, data)
   if (bagId == BAG_GUILDBANK) then
@@ -301,7 +323,7 @@ end
 --
 -- @param   eventId     the event code.
 -- @param   guildId     the id of the guild.
--- @param   guildName   the full name of the guild. 
+-- @param   guildName   the full name of the guild.
 local function onGuildQuit(eventId, guildId, guildName)
   TTIC.DeleteGuildInventory(guildId, guildName);
 end
@@ -325,18 +347,18 @@ end
 
 ------------------------------------------------------------
 -- This method is called when a player has been activated.
--- 
+--
 -- @param   eventId   the event code.
 local function onPlayerActivated(eventId)
   TTIC.ReloadInventory();
-   
+
   -- Delay registering callbacks until data has been initialized.
   registerCallback();
 end
 
 ------------------------------------------------------------
 -- This method is called whenever any addon is loaded.
--- 
+--
 -- @param   eventId   the event code.
 -- @param   addonName the name of the loaded addon.
 local function onAddOnLoaded(eventId, addonName)
@@ -350,7 +372,7 @@ local function onAddOnLoaded(eventId, addonName)
   TTIC.InitInventory();
   TTIC.InitGuildInventory();
   TTIC.InitSettingsMenu();
-  
+
   EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
   EVENT_MANAGER:UnregisterForUpdate(EVENT_ADD_ON_LOADED);
 end

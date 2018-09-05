@@ -12,4 +12,5 @@ ToolTipster_ItemCount = {
 
   -- Constants
   BANK_INDEX = 'bank';
+  CRAFTBAG_INDEX = 'craftbag'
 };

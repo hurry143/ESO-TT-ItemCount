@@ -17,6 +17,7 @@ local SAVEDVARS_VER = 1;
 local DEFAULT_SETTINGS = {
   global = true,
   showBank = false,
+  showCraftBag = false,
   showPlayer = false,
   showAlts = true,
   showGuilds = true,
@@ -126,6 +127,17 @@ local function createOptionsData()
     default = DEFAULT_SETTINGS.showPlayer,
     getFunc = function() return TTIC.GetActiveSettings().showPlayer end,
     setFunc = function(value) TTIC.GetActiveSettings().showPlayer = value end,
+  });
+
+  -- Create an option to show the amount of the item stored in the craft bag.
+  table.insert(data, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_CRAFTBAG),
+    tooltip = GetString(TTIC_OPTION_CRAFTBAG_TIP),
+    default = DEFAULT_SETTINGS.showCraftBag,
+    disabled = function() return not HasCraftBagAccess() end,
+    getFunc = function() return TTIC.GetActiveSettings().showCraftBag end,
+    setFunc = function(value) TTIC.GetActiveSettings().showCraftBag = value end,
   });
 
   -- Create an option to show the amount of the item stored in alts' bag.
