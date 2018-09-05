@@ -1,6 +1,6 @@
-ZO_CreateStringId('TTIC_NAME', 'ToolTipster: ItemCount');
-ZO_CreateStringId('TTIC_SHORTNAME', 'TT ItemCount');
-ZO_CreateStringId('TTIC_DISPLAY_NAME', 'Tool|cF25757Tipster:|r |cF7F49EItem Count|r');
+ZO_CreateStringId('TTIC_NAME', 'YATT: Item Count');
+ZO_CreateStringId('TTIC_SHORTNAME', 'YATT: Item Count');
+ZO_CreateStringId('TTIC_DISPLAY_NAME', 'YA|cF25757TT:|r |cF7F49EItem Count|r');
 ZO_CreateStringId('TTIC_LABEL_BANK', 'Bank');
 
 ------------------------------------------------------------

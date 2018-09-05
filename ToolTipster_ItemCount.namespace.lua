@@ -1,7 +1,7 @@
 ToolTipster_ItemCount = {
   -- Basic properties
   NAME = 'ToolTipster_ItemCount';
-  SHORTNAME = 'TT ItemCount';
+  SHORTNAME = 'YATT Item Count';
   ABBR = 'TTIC';
   VERSION = '1.2.0';
   AUTHOR = 'hurry143';

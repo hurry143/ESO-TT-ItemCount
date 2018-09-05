@@ -1,4 +1,4 @@
-## Title: ToolTipster: ItemCount
+## Title: YA|cF25757TT:|r |cF7F49EItem Count|r
 ## Version: 1.2.0
 ## Author: hurry143
 ## Description: Displays the amount of a given item stored in the bank and across all your characters' bags.
