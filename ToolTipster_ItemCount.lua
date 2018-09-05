@@ -36,7 +36,7 @@ local MONITOR_BAGS = {
 local BANK_ICON = '|t20:22:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t';
 local CRAFTBAG_ICON = '|t20:22:ESOUI/art/tooltips/icon_craft_bag.dds:inheritColor|t';
 local BAG_ICON = '|t20:24:ESOUI/art/crafting/crafting_provisioner_inventorycolumn_icon.dds:inheritColor|t'
-local PADDING_TOP = 10;
+local PADDING_TOP = -5;
 local TOOLTIP_FONT = 'ZoFontGame';
 local COUNT_COLOR = {
   ['current'] = 'FFFFFF';
@@ -51,10 +51,10 @@ local REFINED_COUNT_COLOR = {
   ['stale'] = '483707';
 }
 local GUILD_LABEL_COLOR = {
-  ['current'] = ZO_ColorDef:New('FF33F54D');
-  ['old'] = ZO_ColorDef:New('FF26B83A');
-  ['older'] = ZO_ColorDef:New('FF1A7B27');
-  ['stale'] = ZO_ColorDef:New('FF0F4A17');
+  ['current'] = '33F54D';
+  ['old'] = '26B83A';
+  ['older'] = '1A7B27';
+  ['stale'] = '0F4A17';
 }
 
 ------------------------------------------------------------
@@ -148,6 +148,11 @@ local function createLocationLabel(location)
   return zo_strformat('<<1>>', location);
 end
 
+local function createGuildLabel(guildName, timestamp)
+  local color = selectColor(GUILD_LABEL_COLOR, timestamp);
+  return zo_strformat('|c<<1>><<2>>|r', color, guildName);
+end
+
 local function generateCharLabelText(charName)
   local labelText = charName;
 
@@ -171,19 +176,6 @@ local function addInventoryToolTip(control, itemLink)
     refinedInventory = TTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
   end
 
-  if (TTIC.GetActiveSettings().showAlts) then
-    for _, charName in pairs(TTIC.GetKnownChars()) do
-      local count = itemInventory[charName];
-      local refinedCount = refinedInventory[charName];
-      if (charName ~= CURRENT_PLAYER and TTIC.GetActiveSettings().enabledAlts[charName] and (count or refinedCount)) then
-        local countLabel = createCountLabel(count);
-        local refinedCountLabel = createRefinedCountLabel(refinedCount);
-        local locationLabel = createLocationLabel(generateCharLabelText(charName));
-        table.insert(toolTip, countLabel..refinedCountLabel..' '..locationLabel);
-      end
-    end
-  end
-
   if (TTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..BAG_ICON);
   end
@@ -203,6 +195,41 @@ local function addInventoryToolTip(control, itemLink)
   end
 end
 
+local function addAltsInventoryToolTip(control, itemLink)
+  local toolTip = {};
+  local itemInventory = TTIC.GetInventory(itemLink);
+  local refinedInventory = {};
+  if (TTIC.GetActiveSettings().showRefined) then
+    refinedInventory = TTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
+  end
+
+  if (TTIC.GetActiveSettings().showAlts) then
+    for _, charName in pairs(TTIC.GetKnownChars()) do
+      local count = itemInventory[charName];
+      local refinedCount = refinedInventory[charName];
+      if (charName ~= CURRENT_PLAYER and TTIC.GetActiveSettings().enabledAlts[charName] and (count or refinedCount)) then
+        local countLabel = createCountLabel(count);
+        local refinedCountLabel = createRefinedCountLabel(refinedCount);
+        local locationLabel = createLocationLabel(generateCharLabelText(charName));
+        table.insert(toolTip, countLabel..refinedCountLabel..' '..locationLabel);
+      end
+    end
+  end
+
+  if (#toolTip > 0) then
+    if (TTIC.GetActiveSettings().showAltsNewLine) then
+      for i = 1, #toolTip do
+        control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
+        control:AddLine(toolTip[i], TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+      end
+    else
+      -- Concatenate all the entries into one line and add it to the tooltip.
+      control:AddVerticalPadding(PADDING_TOP);
+      control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+    end
+  end
+end
+
 local function addGuildInventoryToolTip(control, itemLink)
   if (not TTIC.GetActiveSettings().showGuilds) then
     return
@@ -215,24 +242,28 @@ local function addGuildInventoryToolTip(control, itemLink)
   end
 
   local guildInventory = TTIC.GetGuildInventory(itemLink);
-  local lineNum = 1;
   for _, guildName in pairs(TTIC.GetGuilds()) do
     local count = guildInventory[guildName];
     local refinedCount = refinedInventory[guildName];
     if count or refinedCount then
-      if lineNum == 1 then
-        control:AddVerticalPadding(PADDING_TOP);
-      else
-        control:AddVerticalPadding(-10);
-      end
-
       local timestamp = TTIC.GetGuildInventoryTimeStamp(guildName);
       local countLabel = createCountLabel(count, timestamp);
       local refinedCountLabel = createRefinedCountLabel(refinedCount, timestamp);
-      local locationLabel = createLocationLabel(guildName);
-      local color = selectColor(GUILD_LABEL_COLOR, timestamp);
-      control:AddLine(countLabel..refinedCountLabel..' '..locationLabel, TOOLTIP_FONT, color:UnpackRGB());
-      lineNum = lineNum + 1;
+      local locationLabel = createGuildLabel(guildName, timestamp);
+      table.insert(toolTip, countLabel..refinedCountLabel..' '..locationLabel);
+    end
+  end
+
+  if (#toolTip > 0) then
+    if (TTIC.GetActiveSettings().showGuildsNewLine) then
+      for i = 1, #toolTip do
+        control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
+        control:AddLine(toolTip[i], TOOLTIP_FONT);
+      end
+    else
+      -- Concatenate all the entries into one line and add it to the tooltip.
+      control:AddVerticalPadding(PADDING_TOP);
+      control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT);
     end
   end
 end
@@ -247,7 +278,9 @@ local function showToolTip(control, itemLink)
     return;
   end
 
+  control:AddVerticalPadding(10);
   addInventoryToolTip(control, itemLink);
+  addAltsInventoryToolTip(control, itemLink)
   addGuildInventoryToolTip(control, itemLink);
 end
 

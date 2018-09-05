@@ -20,7 +20,9 @@ local DEFAULT_SETTINGS = {
   showCraftBag = false,
   showPlayer = false,
   showAlts = true,
+  showAltsNewLine = false,
   showGuilds = true,
+  showGuildsNewLine = true,
   showRefined = true,
   charNameFormat = 'full',
   displayDataAge = true,
@@ -255,6 +257,20 @@ local function createOptionsData()
     reference = TTIC.ABBR..'_CharDropDown',
   });
 
+  -- Create an option to show each character on a separate line.
+  table.insert(data, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_DISPLAY_ALTS_NEWLINE),
+    tooltip = GetString(TTIC_OPTION_DISPLAY_ALTS_NEWLINE_TIP),
+    default = DEFAULT_SETTINGS.showAltsNewLine,
+    getFunc = function() return TTIC.GetActiveSettings().showAltsNewLine end,
+    setFunc = function(value)
+      TTIC.GetActiveSettings().showAltsNewLine = value;
+    end,
+    disabled = function() return not TTIC.GetActiveSettings().showAlts end,
+    reference = TTIC.ABBR..'_DISPLAY_ALTS_NEWLINE',
+  });
+
   -- Create an option to show the age of data.
   table.insert(data, {
     type = 'checkbox',
@@ -267,6 +283,20 @@ local function createOptionsData()
     end,
     disabled = false,
     reference = TTIC.ABBR..'_DisplayDataAge',
+  });
+
+  -- Create an option to show each guild on a separate line.
+  table.insert(data, {
+    type = 'checkbox',
+    name = GetString(TTIC_OPTION_DISPLAY_GUILDS_NEWLINE),
+    tooltip = GetString(TTIC_OPTION_DISPLAY_GUILDS_NEWLINE_TIP),
+    default = DEFAULT_SETTINGS.showGuildsNewLine,
+    getFunc = function() return TTIC.GetActiveSettings().showGuildsNewLine end,
+    setFunc = function(value)
+      TTIC.GetActiveSettings().showGuildsNewLine = value;
+    end,
+    disabled = function() return not TTIC.GetActiveSettings().showGuilds end,
+    reference = TTIC.ABBR..'_DISPLAY_GUILDS_NEWLINE',
   });
 
   -- Create an option for removing a character's data.
