@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
-local TTIC = YATT_ItemCount;
-local TT = YATT_ItemCount.LIBTT;
+local YATTIC = YATT_ItemCount;
+local YATT = YATT_ItemCount.LIBYATT;
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 local SECS_PER_WEEK = 604800;
 local SECS_PER_DAY = 86400;
@@ -82,7 +82,7 @@ end
 -- @param   slotIndex the slot index within the bag.
 -- @param   itemLink  the itemLink to save.
 -- @param   data      the slot data.
-TTIC.CacheItemLink = function(bagId, slotIndex, itemLink, data)
+YATTIC.CacheItemLink = function(bagId, slotIndex, itemLink, data)
   -- For now, save the itemLink as a field directly in the slot data.
   -- We always have the option of saving it in a local table.
   data.itemLink = itemLink;
@@ -98,7 +98,7 @@ end
 -- @param   data      the slot data.
 --
 -- @return  the cached itemLink.
-TTIC.GetCachedItemLink = function(bagId, slotIndex, data)
+YATTIC.GetCachedItemLink = function(bagId, slotIndex, data)
   -- Return the itemLink that we saved as a field in the slot data.
   return data.itemLink;
 end
@@ -109,7 +109,7 @@ end
 
 local function selectColor(colorTable, timestamp)
   local color = colorTable['current'];
-  if (not timestamp) or (not TTIC.GetActiveSettings().displayDataAge) then
+  if (not timestamp) or (not YATTIC.GetActiveSettings().displayDataAge) then
     return color;
   end
 
@@ -156,10 +156,10 @@ end
 local function generateCharLabelText(charName)
   local labelText = charName;
 
-  if (TTIC.GetActiveSettings().charNameFormat ~= 'full') then
+  if (YATTIC.GetActiveSettings().charNameFormat ~= 'full') then
     for i in string.gmatch(charName, "%S+") do
       labelText = i;
-      if (TTIC.GetActiveSettings().charNameFormat == 'first') then
+      if (YATTIC.GetActiveSettings().charNameFormat == 'first') then
         break;
       end
     end
@@ -170,22 +170,22 @@ end
 
 local function addInventoryToolTip(control, itemLink)
   local toolTip = {};
-  local itemInventory = TTIC.GetInventory(itemLink);
+  local itemInventory = YATTIC.GetInventory(itemLink);
   local refinedInventory = {};
-  if (TTIC.GetActiveSettings().showRefined) then
-    refinedInventory = TTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
+  if (YATTIC.GetActiveSettings().showRefined) then
+    refinedInventory = YATTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
   end
 
-  if (TTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
+  if (YATTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
     table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..BAG_ICON);
   end
 
-  if (TTIC.GetActiveSettings().showCraftBag and (itemInventory[TTIC.CRAFTBAG_INDEX] or refinedInventory[TTIC.CRAFTBAG_INDEX])) then
-    table.insert(toolTip, 1, createCountLabel(itemInventory[TTIC.CRAFTBAG_INDEX])..createRefinedCountLabel(refinedInventory[TTIC.CRAFTBAG_INDEX])..CRAFTBAG_ICON);
+  if (YATTIC.GetActiveSettings().showCraftBag and (itemInventory[YATTIC.CRAFTBAG_INDEX] or refinedInventory[YATTIC.CRAFTBAG_INDEX])) then
+    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.CRAFTBAG_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.CRAFTBAG_INDEX])..CRAFTBAG_ICON);
   end
 
-  if (TTIC.GetActiveSettings().showBank and (itemInventory[TTIC.BANK_INDEX] or refinedInventory[TTIC.BANK_INDEX])) then
-    table.insert(toolTip, 1, createCountLabel(itemInventory[TTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[TTIC.BANK_INDEX])..BANK_ICON);
+  if (YATTIC.GetActiveSettings().showBank and (itemInventory[YATTIC.BANK_INDEX] or refinedInventory[YATTIC.BANK_INDEX])) then
+    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.BANK_INDEX])..BANK_ICON);
   end
 
   if (#toolTip > 0) then
@@ -197,17 +197,17 @@ end
 
 local function addAltsInventoryToolTip(control, itemLink)
   local toolTip = {};
-  local itemInventory = TTIC.GetInventory(itemLink);
+  local itemInventory = YATTIC.GetInventory(itemLink);
   local refinedInventory = {};
-  if (TTIC.GetActiveSettings().showRefined) then
-    refinedInventory = TTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
+  if (YATTIC.GetActiveSettings().showRefined) then
+    refinedInventory = YATTIC.GetInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
   end
 
-  if (TTIC.GetActiveSettings().showAlts) then
-    for _, charName in pairs(TTIC.GetKnownChars()) do
+  if (YATTIC.GetActiveSettings().showAlts) then
+    for _, charName in pairs(YATTIC.GetKnownChars()) do
       local count = itemInventory[charName];
       local refinedCount = refinedInventory[charName];
-      if (charName ~= CURRENT_PLAYER and TTIC.GetActiveSettings().enabledAlts[charName] and (count or refinedCount)) then
+      if (charName ~= CURRENT_PLAYER and YATTIC.GetActiveSettings().enabledAlts[charName] and (count or refinedCount)) then
         local countLabel = createCountLabel(count);
         local refinedCountLabel = createRefinedCountLabel(refinedCount);
         local locationLabel = createLocationLabel(generateCharLabelText(charName));
@@ -217,7 +217,7 @@ local function addAltsInventoryToolTip(control, itemLink)
   end
 
   if (#toolTip > 0) then
-    if (TTIC.GetActiveSettings().showAltsNewLine) then
+    if (YATTIC.GetActiveSettings().showAltsNewLine) then
       for i = 1, #toolTip do
         control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
         control:AddLine(toolTip[i], TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
@@ -231,22 +231,22 @@ local function addAltsInventoryToolTip(control, itemLink)
 end
 
 local function addGuildInventoryToolTip(control, itemLink)
-  if (not TTIC.GetActiveSettings().showGuilds) then
+  if (not YATTIC.GetActiveSettings().showGuilds) then
     return
   end
 
   local toolTip = {};
   local refinedInventory = {};
-  if (TTIC.GetActiveSettings().showRefined) then
-    refinedInventory = TTIC.GetGuildInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
+  if (YATTIC.GetActiveSettings().showRefined) then
+    refinedInventory = YATTIC.GetGuildInventory(GetItemLinkRefinedMaterialItemLink(itemLink));
   end
 
-  local guildInventory = TTIC.GetGuildInventory(itemLink);
-  for _, guildName in pairs(TTIC.GetGuilds()) do
+  local guildInventory = YATTIC.GetGuildInventory(itemLink);
+  for _, guildName in pairs(YATTIC.GetGuilds()) do
     local count = guildInventory[guildName];
     local refinedCount = refinedInventory[guildName];
     if count or refinedCount then
-      local timestamp = TTIC.GetGuildInventoryTimeStamp(guildName);
+      local timestamp = YATTIC.GetGuildInventoryTimeStamp(guildName);
       local countLabel = createCountLabel(count, timestamp);
       local refinedCountLabel = createRefinedCountLabel(refinedCount, timestamp);
       local locationLabel = createGuildLabel(guildName, timestamp);
@@ -255,7 +255,7 @@ local function addGuildInventoryToolTip(control, itemLink)
   end
 
   if (#toolTip > 0) then
-    if (TTIC.GetActiveSettings().showGuildsNewLine) then
+    if (YATTIC.GetActiveSettings().showGuildsNewLine) then
       for i = 1, #toolTip do
         control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
         control:AddLine(toolTip[i], TOOLTIP_FONT);
@@ -292,7 +292,7 @@ end
 -- This method is called whenever a full update is required
 -- for the player's active bag/bank inventory.
 local function onInventoryFullUpdate()
-  TTIC.ReloadInventory();
+  YATTIC.ReloadInventory();
 end
 
 ------------------------------------------------------------
@@ -307,11 +307,11 @@ local function onSlotAdded(bagId, slotIndex, data)
   end
 
   local itemLink = GetItemLink(bagId, slotIndex);
-  TTIC.CacheItemLink(bagId, slotIndex, itemLink, data);
+  YATTIC.CacheItemLink(bagId, slotIndex, itemLink, data);
   if (bagId == BAG_GUILDBANK) then
-    TTIC.UpdateGuildInventory(itemLink, data.stackCount);
+    YATTIC.UpdateGuildInventory(itemLink, data.stackCount);
   else
-    TTIC.UpdateInventory(itemLink, data.stackCount);
+    YATTIC.UpdateInventory(itemLink, data.stackCount);
   end
 end
 
@@ -327,11 +327,11 @@ local function onSlotRemoved(bagId, slotIndex, data)
   end
 
   -- Use the itemLink that was cached when the item was counted earlier.
-  local itemLink = TTIC.GetCachedItemLink(bagId, slotIndex, data)
+  local itemLink = YATTIC.GetCachedItemLink(bagId, slotIndex, data)
   if (bagId == BAG_GUILDBANK) then
-    TTIC.UpdateGuildInventory(itemLink, -1 * data.stackCount);
+    YATTIC.UpdateGuildInventory(itemLink, -1 * data.stackCount);
   else
-    TTIC.UpdateInventory(itemLink, -1 * data.stackCount);
+    YATTIC.UpdateInventory(itemLink, -1 * data.stackCount);
   end
 end
 
@@ -341,14 +341,14 @@ end
 -- @param   eventId   the event code.
 -- @param   guildId   the id of the selected guild.
 local function onGuildBankSelected(eventId, guildId)
-  TTIC.SelectGuildBank(guildId);
+  YATTIC.SelectGuildBank(guildId);
 end
 
 ------------------------------------------------------------
 -- This method is called when the data for the selected guild bank
 -- is loaded and ready to be accessed.
 local function onGuildBankReady()
-  TTIC.ReloadGuildInventory();
+  YATTIC.ReloadGuildInventory();
 end
 
 ------------------------------------------------------------
@@ -358,7 +358,7 @@ end
 -- @param   guildId     the id of the guild.
 -- @param   guildName   the full name of the guild.
 local function onGuildQuit(eventId, guildId, guildName)
-  TTIC.DeleteGuildInventory(guildId, guildName);
+  YATTIC.DeleteGuildInventory(guildId, guildName);
 end
 
 ------------------------------------------------------------
@@ -368,14 +368,14 @@ end
 ------------------------------------------------------------
 -- Registers our callback methods with the appropriate events.
 local function registerCallback()
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_INVENTORY_FULL_UPDATE, onInventoryFullUpdate);
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_CRAFT_COMPLETED, onInventoryFullUpdate);
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_GUILD_BANK_SELECTED, onGuildBankSelected);
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_GUILD_BANK_ITEMS_READY, onGuildBankReady);
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_GUILD_SELF_LEFT_GUILD, onGuildQuit);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_INVENTORY_FULL_UPDATE, onInventoryFullUpdate);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_CRAFT_COMPLETED, onInventoryFullUpdate);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_GUILD_BANK_SELECTED, onGuildBankSelected);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_GUILD_BANK_ITEMS_READY, onGuildBankReady);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_GUILD_SELF_LEFT_GUILD, onGuildQuit);
   SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
   SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
-  TT:RegisterCallback(TT.events.EVENT_ITEM_TOOLTIP, showToolTip);
+  YATT:RegisterCallback(YATT.events.EVENT_ITEM_TOOLTIP, showToolTip);
 end
 
 ------------------------------------------------------------
@@ -383,7 +383,7 @@ end
 --
 -- @param   eventId   the event code.
 local function onPlayerActivated(eventId)
-  TTIC.ReloadInventory();
+  YATTIC.ReloadInventory();
 
   -- Delay registering callbacks until data has been initialized.
   registerCallback();
@@ -396,17 +396,17 @@ end
 -- @param   addonName the name of the loaded addon.
 local function onAddOnLoaded(eventId, addonName)
   -- Do nothing if it's some other addon that was loaded.
-  if (addonName ~= TTIC.NAME) then
+  if (addonName ~= YATTIC.NAME) then
     return;
   end
 
-  TTIC.LoadAccountSettings();
-  TTIC.LoadCharSettings();
-  TTIC.InitInventory();
-  TTIC.InitGuildInventory();
-  TTIC.InitSettingsMenu();
+  YATTIC.LoadAccountSettings();
+  YATTIC.LoadCharSettings();
+  YATTIC.InitInventory();
+  YATTIC.InitGuildInventory();
+  YATTIC.InitSettingsMenu();
 
-  EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
+  EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_PLAYER_ACTIVATED, onPlayerActivated);
   EVENT_MANAGER:UnregisterForUpdate(EVENT_ADD_ON_LOADED);
 end
 
@@ -414,4 +414,4 @@ end
 -- REGISTER WITH THE GAME'S EVENTS
 ------------------------------------------------------------
 
-EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_ADD_ON_LOADED, onAddOnLoaded);
+EVENT_MANAGER:RegisterForEvent(YATTIC.NAME, EVENT_ADD_ON_LOADED, onAddOnLoaded);

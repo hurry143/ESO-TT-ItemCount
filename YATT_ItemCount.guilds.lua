@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
-local TTIC = YATT_ItemCount;
-local TT = YATT_ItemCount.LIBTT;
+local YATTIC = YATT_ItemCount;
+local YATT = YATT_ItemCount.LIBYATT;
 local GUILD_BANK_RELOAD_DELAY = 1500;
 
 ------------------------------------------------------------
@@ -24,7 +24,7 @@ local function refreshGuildMembership()
   -- Check to see if we were kicked out of a guild while logged off.
   for guildName, _ in pairs(guildInventory) do
     local isMember = false;
-    for _, activeGuildName in pairs(TTIC.GetGuilds()) do
+    for _, activeGuildName in pairs(YATTIC.GetGuilds()) do
       if (guildName == activeGuildName) then
         isMember = true;
         break;
@@ -42,10 +42,10 @@ end
 
 ------------------------------------------------------------
 -- Initializes the guild inventory data.
-TTIC.InitGuildInventory = function()
+YATTIC.InitGuildInventory = function()
   if not guildInventory then
     -- Set the local reference to the saved variable.
-    guildInventory = TTIC:GetSavedGuildInventory();
+    guildInventory = YATTIC:GetSavedGuildInventory();
   end
   refreshGuildMembership();
 end
@@ -55,7 +55,7 @@ end
 -- bank at the bank teller.
 --
 -- @param   guildId   the id of the selected guild.
-TTIC.SelectGuildBank = function(guildId)
+YATTIC.SelectGuildBank = function(guildId)
   currentGuildId = guildId;
   guildBankLoading = false;
   guildBankLoaded = false;
@@ -66,14 +66,14 @@ end
 --
 -- @param   guildId     the id of the guild to remove.
 -- @param   guildName   the name of the guild to remove.
-TTIC.DeleteGuildInventory = function(guildId, guildName)
+YATTIC.DeleteGuildInventory = function(guildId, guildName)
   guildInventory[guildName] = nil;
 end
 
 ------------------------------------------------------------
 -- Re-scans all items in the selected build bank and updates
 -- the inventory data accordingly.
-TTIC.ReloadGuildInventory = function()
+YATTIC.ReloadGuildInventory = function()
   -- Don't run this method again if the data is still being loaded.
   if guildBankLoading then
     return
@@ -93,8 +93,8 @@ TTIC.ReloadGuildInventory = function()
         numSlots = numSlots + 1;
         local itemLink = GetItemLink(data.bagId, data.slotIndex);
         if itemLink then
-          TTIC.CacheItemLink(data.bagId, data.slotIndex, itemLink, data);
-          local itemKey = TT:CreateItemIndex(itemLink);
+          YATTIC.CacheItemLink(data.bagId, data.slotIndex, itemLink, data);
+          local itemKey = YATT:CreateItemIndex(itemLink);
           if itemKey then
             if not guildInventory[guildName][itemKey] then
               guildInventory[guildName][itemKey] = 0;
@@ -105,7 +105,7 @@ TTIC.ReloadGuildInventory = function()
         end
       end
       -- TODO Localize this logging text.
-      d(TTIC.SHORTNAME..': Scanned |cFFFFFF'..numItems..'|r items in |cFFFFFF'..numSlots..'|r slots for guild('..currentGuildId..') |c33F54D'..guildName..'|r');
+      d('['..GetString(YATTIC_SHORTNAME)..']: Scanned |cFFFFFF'..numItems..'|r items in |cFFFFFF'..numSlots..'|r slots for guild('..currentGuildId..') |c33F54D'..guildName..'|r');
       guildBankLoaded = true;
     end,
     GUILD_BANK_RELOAD_DELAY);
@@ -116,7 +116,7 @@ end
 --
 -- @param   itemLink  the link for the item.
 -- @param   amount    the amount that the item count has increased/decreased by.
-TTIC.UpdateGuildInventory = function(itemLink, amount)
+YATTIC.UpdateGuildInventory = function(itemLink, amount)
   if (not itemLink) then
     return;
   end
@@ -126,7 +126,7 @@ TTIC.UpdateGuildInventory = function(itemLink, amount)
   end
 
   local guildName = GetGuildName(currentGuildId);
-  local itemKey = TT:CreateItemIndex(itemLink);
+  local itemKey = YATT:CreateItemIndex(itemLink);
   if itemKey then
     if not guildInventory[guildName][itemKey] then
       guildInventory[guildName][itemKey] = 0;
@@ -146,8 +146,8 @@ end
 -- @param   itemLink  the link for the item.
 --
 -- @return  a table of guild names and their respective counts.
-TTIC.GetGuildInventory = function(itemLink)
-  local itemKey = TT:CreateItemIndex(itemLink);
+YATTIC.GetGuildInventory = function(itemLink)
+  local itemKey = YATT:CreateItemIndex(itemLink);
   local itemInventory = {};
 
   if (not itemKey) then
@@ -169,7 +169,7 @@ end
 -- @param   guildName   the name of the guild.
 --
 -- @return  the timestamp of the guild's data, or nil if the data cannot be found.
-TTIC.GetGuildInventoryTimeStamp = function(guildName)
+YATTIC.GetGuildInventoryTimeStamp = function(guildName)
   local timestamp = nil;
 
   if guildInventory[guildName] then

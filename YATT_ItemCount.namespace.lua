@@ -1,13 +1,12 @@
 YATT_ItemCount = {
   -- Basic properties
   NAME = 'YATT_ItemCount';
-  SHORTNAME = 'YATT Item Count';
-  ABBR = 'TTIC';
+  ABBR = 'YATTIC';
   VERSION = '1.2.0';
   AUTHOR = 'hurry143';
 
   -- Dependencies
-  LIBTT = LibStub('LibYATT');
+  LIBYATT = LibStub('LibYATT');
   LIBADDONMENU = LibStub('LibAddonMenu-2.0');
 
   -- Constants

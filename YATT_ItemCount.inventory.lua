@@ -1,8 +1,8 @@
 ------------------------------------------------------------
 -- LOCAL CONSTANTS
 ------------------------------------------------------------
-local TTIC = YATT_ItemCount;
-local TT = YATT_ItemCount.LIBTT;
+local YATTIC = YATT_ItemCount;
+local YATT = YATT_ItemCount.LIBYATT;
 local CURRENT_PLAYER = zo_strformat('<<C:1>>', GetUnitName('player'));
 
 ------------------------------------------------------------
@@ -37,10 +37,10 @@ end
 
 ------------------------------------------------------------
 -- Initializes the inventory data.
-TTIC.InitInventory = function()
+YATTIC.InitInventory = function()
   if not inventory then
     -- Set the local reference to the saved variable.
-    inventory = TTIC.GetSavedInventory();
+    inventory = YATTIC.GetSavedInventory();
   end
 end
 
@@ -48,7 +48,7 @@ end
 -- Removes a character from the inventory data.
 --
 -- @param   charName  the name of the character to remove.
-TTIC.DeleteCharInventory = function(charName)
+YATTIC.DeleteCharInventory = function(charName)
   for itemKey, _ in pairs(inventory) do
     for location, amount in pairs(inventory[itemKey]) do
       if (location == charName) then
@@ -68,13 +68,13 @@ end
 ------------------------------------------------------------
 -- Re-scans all items in both the bank and the current character's
 -- backpack and updates the inventory data accordingly.
-TTIC.ReloadInventory = function()
+YATTIC.ReloadInventory = function()
   local items = SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK, BAG_BANK, BAG_VIRTUAL);
 
   for slot, data in pairs(items) do
     local itemLink = GetItemLink(data.bagId, data.slotIndex);
-    TTIC.CacheItemLink(data.bagId, data.slotIndex, itemLink, data);
-    TTIC.UpdateInventory(itemLink);
+    YATTIC.CacheItemLink(data.bagId, data.slotIndex, itemLink, data);
+    YATTIC.UpdateInventory(itemLink);
   end
 
 end
@@ -84,14 +84,14 @@ end
 --
 -- @param   itemLink  the link for the item.
 -- @param   amount    the amount that the item count has increased/decreased by.
-TTIC.UpdateInventory = function(itemLink, amount)
+YATTIC.UpdateInventory = function(itemLink, amount)
   if (not itemLink) then
     return;
   end
 
   -- For now, ignore the 'amount' and just get the counts directly.
   local bagpackCount, bankCount, craftbagCount = GetItemLinkStacks(itemLink);
-  local itemKey = TT:CreateItemIndex(itemLink);
+  local itemKey = YATT:CreateItemIndex(itemLink);
 
   if (not itemKey) then
     return;
@@ -102,8 +102,8 @@ TTIC.UpdateInventory = function(itemLink, amount)
   end
 
   updateBagCount(itemKey, CURRENT_PLAYER, bagpackCount);
-  updateBagCount(itemKey, TTIC.BANK_INDEX, bankCount);
-  updateBagCount(itemKey, TTIC.CRAFTBAG_INDEX, craftbagCount);
+  updateBagCount(itemKey, YATTIC.BANK_INDEX, bankCount);
+  updateBagCount(itemKey, YATTIC.CRAFTBAG_INDEX, craftbagCount);
 
   -- Count the number of entries that remain for the item after the updates.
   local count = 0
@@ -125,8 +125,8 @@ end
 -- @param   itemLink  the link for the item.
 --
 -- @return  a table of location names and their respective counts.
-TTIC.GetInventory = function(itemLink)
-  local itemKey = TT:CreateItemIndex(itemLink);
+YATTIC.GetInventory = function(itemLink)
+  local itemKey = YATT:CreateItemIndex(itemLink);
   local itemInventory = {};
 
   if (not itemKey or not inventory[itemKey]) then
