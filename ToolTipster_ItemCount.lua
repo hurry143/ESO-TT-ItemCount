@@ -375,7 +375,7 @@ local function registerCallback()
   EVENT_MANAGER:RegisterForEvent(TTIC.NAME, EVENT_GUILD_SELF_LEFT_GUILD, onGuildQuit);
   SHARED_INVENTORY:RegisterCallback('SlotAdded', onSlotAdded);
   SHARED_INVENTORY:RegisterCallback('SlotRemoved', onSlotRemoved);
-  TT:RegisterCallback(TT.events.TT_EVENT_ITEM_TOOLTIP, showToolTip);
+  TT:RegisterCallback(TT.events.EVENT_ITEM_TOOLTIP, showToolTip);
 end
 
 ------------------------------------------------------------

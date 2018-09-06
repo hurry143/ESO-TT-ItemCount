@@ -3,12 +3,11 @@
 ## Author: hurry143
 ## Description: Displays the amount of a given item stored in the bank and across all your characters' bags.
 ## APIVersion: 100024
-## DependsOn: LibAddonMenu-2.0
-## OptionalDependsOn: ToolTipster
+## DependsOn: LibStub LibAddonMenu-2.0
+## OptionalDependsOn: LibYATT
 ## SavedVariables: ItemCount_SavedVars
 
-libs\LibStub\LibStub.lua
-libs\ToolTipster\ToolTipster.lua
+libs\LibYATT\LibYATT.lua
 
 localization\$(language).lua
 ToolTipster_ItemCount.namespace.lua

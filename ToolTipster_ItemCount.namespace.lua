@@ -7,7 +7,7 @@ ToolTipster_ItemCount = {
   AUTHOR = 'hurry143';
 
   -- Dependencies
-  LIBTT = LibStub('ToolTipster');
+  LIBTT = LibStub('LibYATT');
   LIBADDONMENU = LibStub('LibAddonMenu-2.0');
 
   -- Constants
