@@ -3,8 +3,7 @@
 ## Author: hurry143
 ## Description: Displays the amount of a given item stored in the bank and across all your characters' bags.
 ## APIVersion: 100024
-## DependsOn: LibStub LibAddonMenu-2.0
-## OptionalDependsOn: LibYATT
+## DependsOn: LibYATT LibStub LibAddonMenu-2.0
 ## SavedVariables: ItemCount_SavedVars
 
 libs\LibYATT\LibYATT.lua
