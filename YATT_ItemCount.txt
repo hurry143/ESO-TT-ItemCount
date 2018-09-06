@@ -1,0 +1,16 @@
+## Title: YA|cF25757TT:|r |cF7F49EItem Count|r
+## Version: 1.2.0
+## Author: hurry143
+## Description: Displays the amount of a given item stored in the bank and across all your characters' bags.
+## APIVersion: 100024
+## DependsOn: LibYATT LibStub LibAddonMenu-2.0
+## SavedVariables: ItemCount_SavedVars
+
+libs\LibYATT\LibYATT.lua
+
+localization\$(language).lua
+YATT_ItemCount.namespace.lua
+YATT_ItemCount.settings.lua
+YATT_ItemCount.inventory.lua
+YATT_ItemCount.guilds.lua
+YATT_ItemCount.lua
