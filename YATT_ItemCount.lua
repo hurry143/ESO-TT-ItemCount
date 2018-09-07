@@ -33,11 +33,12 @@ local MONITOR_BAGS = {
 ------------------------------------------------------------
 -- STYLES AND FORMATTING
 ------------------------------------------------------------
-local BANK_ICON = '|t20:22:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t';
-local CRAFTBAG_ICON = '|t20:22:ESOUI/art/tooltips/icon_craft_bag.dds:inheritColor|t';
-local BAG_ICON = '|t20:24:ESOUI/art/crafting/crafting_provisioner_inventorycolumn_icon.dds:inheritColor|t'
-local PADDING_TOP = -5;
+local BANK_ICON = '|t<<1>>:<<2>>:ESOUI/art/icons/mapkey/mapkey_bank.dds:inheritColor|t';
+local CRAFTBAG_ICON = '|t<<1>>:<<2>>:ESOUI/art/tooltips/icon_craft_bag.dds:inheritColor|t';
+local BAG_ICON = '|t<<1>>:<<2>>:ESOUI/art/tooltips/icon_bag.dds:inheritColor|t'
+local PADDING_TOP = -7;
 local TOOLTIP_FONT = 'ZoFontGame';
+local TOOLTIP_COLOR = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB();
 local COUNT_COLOR = {
   ['current'] = 'FFFFFF';
   ['old'] = 'B2B2B2';
@@ -56,6 +57,7 @@ local GUILD_LABEL_COLOR = {
   ['older'] = '1A7B27';
   ['stale'] = '0F4A17';
 }
+local headerAdded = false;
 
 ------------------------------------------------------------
 -- UTILITY METHODS
@@ -168,6 +170,42 @@ local function generateCharLabelText(charName)
   return labelText;
 end
 
+local function getIcon(icon)
+  local width = IsInGamepadPreferredMode() and 23 or 20;
+  local height = IsInGamepadPreferredMode() and 25 or 22;
+
+  return zo_strformat(icon, width, height);
+end
+
+local function addHeader(control)
+  if (headerAdded) then
+    return
+  end
+
+  if (not IsInGamepadPreferredMode()) then
+    control:AddVerticalPadding(10);
+  else
+    local style = { fontSize = "$(GP_27)", fontFace = "$(GAMEPAD_MEDIUM_FONT)", uppercase = true };
+    control:AddLine('', style, control:GetStyle("bodySection"));
+  end
+  headerAdded = true;
+end
+
+local function addVerticalPadding(control, padding)
+  if (not IsInGamepadPreferredMode()) then
+    control:AddVerticalPadding(padding);
+  end
+end
+
+local function addLine(control, text)
+  if (not IsInGamepadPreferredMode()) then
+    control:AddLine(text, TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+  else
+    local style = { fontSize = "$(GP_27)", fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3 };
+    control:AddLine(text, style);
+  end
+end
+
 local function addInventoryToolTip(control, itemLink)
   local toolTip = {};
   local itemInventory = YATTIC.GetInventory(itemLink);
@@ -177,21 +215,22 @@ local function addInventoryToolTip(control, itemLink)
   end
 
   if (YATTIC.GetActiveSettings().showPlayer and (itemInventory[CURRENT_PLAYER] or refinedInventory[CURRENT_PLAYER])) then
-    table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..BAG_ICON);
-  end
-
-  if (YATTIC.GetActiveSettings().showCraftBag and (itemInventory[YATTIC.CRAFTBAG_INDEX] or refinedInventory[YATTIC.CRAFTBAG_INDEX])) then
-    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.CRAFTBAG_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.CRAFTBAG_INDEX])..CRAFTBAG_ICON);
+    table.insert(toolTip, 1, createCountLabel(itemInventory[CURRENT_PLAYER])..createRefinedCountLabel(refinedInventory[CURRENT_PLAYER])..getIcon(BAG_ICON));
   end
 
   if (YATTIC.GetActiveSettings().showBank and (itemInventory[YATTIC.BANK_INDEX] or refinedInventory[YATTIC.BANK_INDEX])) then
-    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.BANK_INDEX])..BANK_ICON);
+    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.BANK_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.BANK_INDEX])..getIcon(BANK_ICON));
+  end
+
+  if (YATTIC.GetActiveSettings().showCraftBag and (itemInventory[YATTIC.CRAFTBAG_INDEX] or refinedInventory[YATTIC.CRAFTBAG_INDEX])) then
+    table.insert(toolTip, 1, createCountLabel(itemInventory[YATTIC.CRAFTBAG_INDEX])..createRefinedCountLabel(refinedInventory[YATTIC.CRAFTBAG_INDEX])..getIcon(CRAFTBAG_ICON));
   end
 
   if (#toolTip > 0) then
     -- Concatenate all the entries into one line and add it to the tooltip.
-    control:AddVerticalPadding(PADDING_TOP);
-    control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+    addHeader(control);
+    addVerticalPadding(control, PADDING_TOP);
+    addLine(control, table.concat(toolTip, '  '));
   end
 end
 
@@ -217,15 +256,16 @@ local function addAltsInventoryToolTip(control, itemLink)
   end
 
   if (#toolTip > 0) then
+    addHeader(control);
     if (YATTIC.GetActiveSettings().showAltsNewLine) then
       for i = 1, #toolTip do
-        control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
-        control:AddLine(toolTip[i], TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+        addVerticalPadding(control, i == 1 and PADDING_TOP or - 15);
+        addLine(control, toolTip[i]);
       end
     else
       -- Concatenate all the entries into one line and add it to the tooltip.
-      control:AddVerticalPadding(PADDING_TOP);
-      control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB());
+      addVerticalPadding(control, PADDING_TOP);
+      addLine(control, table.concat(toolTip, '  '));
     end
   end
 end
@@ -255,15 +295,16 @@ local function addGuildInventoryToolTip(control, itemLink)
   end
 
   if (#toolTip > 0) then
+    addHeader(control);
     if (YATTIC.GetActiveSettings().showGuildsNewLine) then
       for i = 1, #toolTip do
-        control:AddVerticalPadding(i == 1 and PADDING_TOP or -15);
-        control:AddLine(toolTip[i], TOOLTIP_FONT);
+        addVerticalPadding(control, i == 1 and PADDING_TOP or - 15);
+        addLine(control, toolTip[i]);
       end
     else
       -- Concatenate all the entries into one line and add it to the tooltip.
-      control:AddVerticalPadding(PADDING_TOP);
-      control:AddLine(table.concat(toolTip, '  '), TOOLTIP_FONT);
+      addVerticalPadding(control, PADDING_TOP);
+      addLine(control, table.concat(toolTip, '  '));
     end
   end
 end
@@ -278,7 +319,7 @@ local function showToolTip(control, itemLink)
     return;
   end
 
-  control:AddVerticalPadding(10);
+  headerAdded = false;
   addInventoryToolTip(control, itemLink);
   addAltsInventoryToolTip(control, itemLink)
   addGuildInventoryToolTip(control, itemLink);
@@ -329,9 +370,9 @@ local function onSlotRemoved(bagId, slotIndex, data)
   -- Use the itemLink that was cached when the item was counted earlier.
   local itemLink = YATTIC.GetCachedItemLink(bagId, slotIndex, data)
   if (bagId == BAG_GUILDBANK) then
-    YATTIC.UpdateGuildInventory(itemLink, -1 * data.stackCount);
+    YATTIC.UpdateGuildInventory(itemLink, - 1 * data.stackCount);
   else
-    YATTIC.UpdateInventory(itemLink, -1 * data.stackCount);
+    YATTIC.UpdateInventory(itemLink, - 1 * data.stackCount);
   end
 end
 
