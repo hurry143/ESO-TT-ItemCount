@@ -27,6 +27,7 @@ local DEFAULT_SETTINGS = {
   charNameFormat = 'full',
   displayDataAge = true,
   enabledAlts = {},
+  enabledGuilds = {}
 };
 
 -- Defaults for account-wide saved variables.
@@ -149,25 +150,7 @@ local function createOptionsData()
     tooltip = GetString(YATTIC_OPTION_ALTS_TIP),
     default = DEFAULT_SETTINGS.showAlts,
     getFunc = function() return YATTIC.GetActiveSettings().showAlts end,
-    setFunc = function(value)
-      YATTIC.GetActiveSettings().showAlts = value;
-      for _, altName in pairs(knownChars) do
-        -- Toggle the character's checkbox in the settings menu.
-        local checkbox = GetControl(YATTIC.ABBR..'_'..altName);
-        if checkbox then
-          checkbox.data.disabled = not value;
-          checkbox.data.default = true;
-          checkbox:UpdateDisabled();
-        end
-      end
-
-      local dropdown = GetControl(YATTIC.ABBR..'_CharDropDown');
-      if dropdown then
-        dropdown.data.disabled = not value;
-        dropdown.data.default = DEFAULT_SETTINGS.charNameFormat;
-        dropdown:UpdateDisabled();
-      end
-    end,
+    setFunc = function(value) YATTIC.GetActiveSettings().showAlts = value end,
   });
 
   -- Create an option to show the amount of the item stored in guild banks.
@@ -177,15 +160,7 @@ local function createOptionsData()
     tooltip = GetString(YATTIC_OPTION_GUILDS_TIP),
     default = DEFAULT_SETTINGS.showGuilds,
     getFunc = function() return YATTIC.GetActiveSettings().showGuilds end,
-    setFunc = function(value)
-      YATTIC.GetActiveSettings().showGuilds = value;
-      local checkbox = GetControl(YATTIC.ABBR..'_DisplayDataAge');
-      if checkbox then
-        checkbox.data.disabled = not value;
-        checkbox.data.default = DEFAULT_SETTINGS.displayDataAge;
-        checkbox:UpdateDisabled();
-      end
-    end,
+    setFunc = function(value) YATTIC.GetActiveSettings().showGuilds = value end
   });
 
   -- Create an option to show the amount of the refined item.
@@ -195,9 +170,7 @@ local function createOptionsData()
     tooltip = GetString(YATTIC_OPTION_REFINED_TIP),
     default = DEFAULT_SETTINGS.showRefined,
     getFunc = function() return YATTIC.GetActiveSettings().showRefined end,
-    setFunc = function(value)
-      YATTIC.GetActiveSettings().showRefined = value;
-    end,
+    setFunc = function(value) YATTIC.GetActiveSettings().showRefined = value; end,
   });
 
   -- Create a section for selecting which characters to report amounts for.
@@ -220,8 +193,33 @@ local function createOptionsData()
       default = true,
       getFunc = function() return YATTIC.GetActiveSettings().enabledAlts[charName] end,
       setFunc = function(value) YATTIC.GetActiveSettings().enabledAlts[charName] = value end,
-      disabled = false,
+      disabled = function() return not YATTIC.GetActiveSettings().showAlts end,
       reference = YATTIC.ABBR..'_'..charName,
+    });
+  end
+
+  -- Create a section for selecting which guilds to report amounts for.
+  table.insert(data, {
+    type = 'header',
+    name = GetString(YATTIC_MENU_GUILDS),
+  });
+
+  table.insert(data, {
+    type = 'description',
+    text = GetString(YATTIC_MENU_GUILDS_DESC),
+  });
+
+  -- Create a checkbox for each guild.
+  for _, guildName in pairs(guilds) do
+    table.insert(data, {
+      type = 'checkbox',
+      name = GetString(YATTIC_OPTION_GUILD)..'|cF7F49E'..guildName..'|r',
+      tooltip = GetString(YATTIC_OPTION_GUILD_TIP),
+      default = true,
+      getFunc = function() return YATTIC.GetActiveSettings().enabledGuilds[guildName] end,
+      setFunc = function(value) YATTIC.GetActiveSettings().enabledGuilds[guildName] = value end,
+      disabled = function() return not YATTIC.GetActiveSettings().showGuilds end,
+      reference = YATTIC.ABBR..'_'..guildName,
     });
   end
 
@@ -253,8 +251,7 @@ local function createOptionsData()
         end
         YATTIC.GetActiveSettings().charNameFormat = selected;
       end,
-    disabled = false,
-    reference = YATTIC.ABBR..'_CharDropDown',
+    disabled = function() return not YATTIC.GetActiveSettings().showAlts end
   });
 
   -- Create an option to show each character on a separate line.
@@ -267,22 +264,7 @@ local function createOptionsData()
     setFunc = function(value)
       YATTIC.GetActiveSettings().showAltsNewLine = value;
     end,
-    disabled = function() return not YATTIC.GetActiveSettings().showAlts end,
-    reference = YATTIC.ABBR..'_DISPLAY_ALTS_NEWLINE',
-  });
-
-  -- Create an option to show the age of data.
-  table.insert(data, {
-    type = 'checkbox',
-    name = GetString(YATTIC_OPTION_DATAAGE),
-    tooltip = GetString(YATTIC_OPTION_DATAAGE_TIP),
-    default = DEFAULT_SETTINGS.displayDataAge,
-    getFunc = function() return YATTIC.GetActiveSettings().displayDataAge end,
-    setFunc = function(value)
-      YATTIC.GetActiveSettings().displayDataAge = value;
-    end,
-    disabled = false,
-    reference = YATTIC.ABBR..'_DisplayDataAge',
+    disabled = function() return not YATTIC.GetActiveSettings().showAlts end
   });
 
   -- Create an option to show each guild on a separate line.
@@ -297,6 +279,19 @@ local function createOptionsData()
     end,
     disabled = function() return not YATTIC.GetActiveSettings().showGuilds end,
     reference = YATTIC.ABBR..'_DISPLAY_GUILDS_NEWLINE',
+  });
+
+  -- Create an option to show the age of data.
+  table.insert(data, {
+    type = 'checkbox',
+    name = GetString(YATTIC_OPTION_DATAAGE),
+    tooltip = GetString(YATTIC_OPTION_DATAAGE_TIP),
+    default = DEFAULT_SETTINGS.displayDataAge,
+    getFunc = function() return YATTIC.GetActiveSettings().displayDataAge end,
+    setFunc = function(value)
+      YATTIC.GetActiveSettings().displayDataAge = value;
+    end,
+    disabled = function() return not YATTIC.GetActiveSettings().showGuilds end
   });
 
   -- Create an option for removing a character's data.
@@ -372,7 +367,9 @@ YATTIC.LoadAccountSettings = function()
   guilds = {};
   for i=1, GetNumGuilds() do
     local guildId = GetGuildId(i);
-    table.insert(guilds, GetGuildName(guildId));
+    local guildName = GetGuildName(guildId)
+    acctSettings.enabledGuilds[guildName] = true;
+    table.insert(guilds, guildName);
   end
 end
 
