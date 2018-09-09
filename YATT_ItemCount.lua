@@ -285,7 +285,7 @@ local function addGuildInventoryToolTip(control, itemLink)
   for _, guildName in pairs(YATTIC.GetGuilds()) do
     local count = guildInventory[guildName];
     local refinedCount = refinedInventory[guildName];
-    if count or refinedCount then
+    if (count or refinedCount) and YATTIC.GetActiveSettings().enabledGuilds[guildName] then
       local timestamp = YATTIC.GetGuildInventoryTimeStamp(guildName);
       local countLabel = createCountLabel(count, timestamp);
       local refinedCountLabel = createRefinedCountLabel(refinedCount, timestamp);
