@@ -8,6 +8,7 @@
 
 libs\LibYATT\LibYATT.lua
 
+localization\en.lua
 localization\$(language).lua
 YATT_ItemCount.namespace.lua
 YATT_ItemCount.settings.lua
